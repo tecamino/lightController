@@ -1,18 +1,16 @@
 import type { Response } from 'src/models/Response';
 import type { Publish } from 'src/models/Publish';
 import type { Request } from 'src/models/Request';
+import type { QVueGlobals } from 'quasar';
 import { subs, buildTree, dbmData } from 'src/composables/dbmTree';
-import { onBeforeUnmount, ref } from 'vue';
-import { useQuasar } from 'quasar';
+import { ref } from 'vue';
 
 const pendingResponses = new Map<string, (data: Response | undefined) => void>();
 
-let socket: WebSocket | null = null;
+export let socket: WebSocket | null = null;
 const isConnected = ref(false);
 
-export function useWebSocket(url: string) {
-  const $q = useQuasar();
-
+export function initWebSocket(url: string, $q?: QVueGlobals) {
   const connect = () => {
     socket = new WebSocket(url);
 
@@ -22,22 +20,24 @@ export function useWebSocket(url: string) {
     };
     socket.onclose = () => {
       isConnected.value = false;
-      $q.notify({
+      console.log('WebSocket disconnected');
+      $q?.notify({
         message: 'WebSocket disconnected',
         color: 'orange',
         position: 'bottom-right',
         icon: 'warning',
-        timeout: 5000,
+        timeout: 10000,
       });
     };
     socket.onerror = (err) => {
+      console.log(`WebSocket error: ${err.type}`);
       isConnected.value = false;
-      $q.notify({
+      $q?.notify({
         message: `WebSocket error: ${err.type}`,
         color: 'red',
         position: 'bottom-right',
         icon: 'error',
-        timeout: 5000,
+        timeout: 10000,
       });
     };
     socket.onmessage = (event) => {
@@ -67,13 +67,12 @@ export function useWebSocket(url: string) {
     }
   };
 
-  onBeforeUnmount(() => {
-    close();
-  });
+  // onBeforeUnmount(() => {
+  //   close();
+  // });
 
   return {
     connect,
-    send,
     close,
     socket,
   };
@@ -102,7 +101,7 @@ function waitForSocketConnection(): Promise<void> {
   });
 }
 
-function send(data: Request): Promise<Response | undefined> {
+export function send(data: Request): Promise<Response | undefined> {
   const id = generateId();
   const payload = { ...data, id };
 

@@ -57,17 +57,14 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
-import { useWebSocket } from 'src/composables/useWebSocket';
 import type { TreeNode } from 'src/composables/dbmTree';
 import { subs, dbmData, buildTree } from 'src/composables/dbmTree';
 import { openContextMenu } from 'src/composables/useContextMenu';
 import SubMenu from 'src/components/SubMenu.vue';
 import { QCard } from 'quasar';
-
-const { connect, send } = useWebSocket('ws://127.0.0.1:8100/ws?id=quasar');
+import { send } from 'src/services/websocket';
 
 onMounted(() => {
-  connect();
   send({
     subscribe: [
       {

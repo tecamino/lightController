@@ -13,8 +13,7 @@
 
 <script setup lang="ts">
 import { contextMenu } from 'src/composables/useContextMenu';
-import { useWebSocket } from 'src/composables/useWebSocket';
-const { send } = useWebSocket('ws://127.0.0.1:8100/ws?id=quasar');
+import { send } from 'src/services/websocket';
 
 function handleAction(action: string) {
   console.log(`Action '${action}' on node:`, contextMenu.value.node);

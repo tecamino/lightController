@@ -101,11 +101,9 @@
 </template>
 
 <script setup lang="ts">
-import { watch, onMounted, reactive } from 'vue';
-import { useWebSocket } from 'src/composables/useWebSocket';
+import { watch, reactive } from 'vue';
 import type { Light } from 'src/models/Light';
-
-const { connect, send } = useWebSocket('ws://127.0.0.1:8100/ws?id=quasar');
+import { send } from 'src/services/websocket';
 
 const light = reactive<Light>({
   State: false,
@@ -116,10 +114,6 @@ const light = reactive<Light>({
   White: 0,
   Amber: 0,
   Purple: 0,
-});
-
-onMounted(() => {
-  connect();
 });
 
 watch(light, (newVal: Light) => {

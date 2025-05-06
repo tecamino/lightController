@@ -10,7 +10,7 @@ select
   <div class="q-pa-md">
     <q-card>
       <q-card-section class="q-mt-md q-mr-sm row items-start">
-        <div class="column justify-center q-mr-lg" style="height: 200px">
+        <div class="column justify-center q-ma-lg" style="height: 200px">
           <q-btn
             @click="light.State = !light.State"
             round
@@ -22,7 +22,7 @@ select
         <q-item-label class="text-bold">Dimmer</q-item-label>
         <q-slider
           label
-          class="q-mr-lg"
+          class="q-ma-lg"
           vertical
           reverse
           v-model="light.Brightness"
@@ -34,7 +34,7 @@ select
         />
         <q-item-label class="text-bold">Red</q-item-label>
         <q-slider
-          class="q-mr-lg"
+          class="q-ma-lg"
           vertical
           reverse
           v-model="light.Red"
@@ -47,7 +47,7 @@ select
         />
         <q-item-label class="text-bold">Green</q-item-label>
         <q-slider
-          class="q-mr-lg"
+          class="q-ma-lg"
           vertical
           reverse
           v-model="light.Green"
@@ -60,7 +60,7 @@ select
         />
         <q-item-label class="text-bold">Blue</q-item-label>
         <q-slider
-          class="q-mr-lg"
+          class="q-ma-lg"
           vertical
           reverse
           v-model="light.Blue"
@@ -71,9 +71,9 @@ select
           color="blue"
           style="opacity: 0.8"
         />
-        <q-item-label class="text-bold">White</q-item-label>
+        <q-item-label class="text-bold items-center">White</q-item-label>
         <q-slider
-          class="q-mr-lg"
+          class="q-ma-lg"
           vertical
           reverse
           v-model="light.White"
@@ -86,7 +86,7 @@ select
         />
         <q-item-label class="text-bold">Zoom</q-item-label>
         <q-slider
-          class="q-mr-lg"
+          class="q-ma-lg"
           vertical
           reverse
           v-model="light.Zoom"
@@ -97,44 +97,13 @@ select
           color="black"
           style="opacity: 1"
         />
-        <q-item-label class="text-bold">Tilt</q-item-label>
-        <q-slider
-          class="q-mr-sm"
-          vertical
-          reverse
-          v-model="light.Tilt"
-          :min="0"
-          :max="100"
-          :step="1"
-          label
-          color="black"
-          style="opacity: 1"
-        />
-        <div class="column items-center q-ml-sm">
-          <div
-            class="bg-grey-3"
-            style="
-              width: 200px;
-              height: 200px;
-              position: relative;
-              border: 1px solid #ccc;
-              border-radius: 8px;
-            "
-            @mousedown="startDrag"
-            @mousemove="onDrag"
-            @mouseup="stopDrag"
-            @mouseleave="stopDrag"
-            @touchstart="startTouch"
-            @touchmove="onTouch"
-            @touchend="stopDrag"
-            ref="pad"
-          >
-            <div class="marker" :style="markerStyle" :class="{ crosshair: dragging }"></div>
-          </div>
-          <q-item-label class="text-bold">Pan</q-item-label>
+        <div class="row q-ma-sm">
+          <q-item-label class="text-bold">Tilt</q-item-label>
           <q-slider
-            class="q-ml-sm"
-            v-model="light.Pan"
+            class="q-mr-sm"
+            vertical
+            reverse
+            v-model="light.Tilt"
             :min="0"
             :max="100"
             :step="1"
@@ -142,6 +111,39 @@ select
             color="black"
             style="opacity: 1"
           />
+          <div class="column items-center q-ml-sm">
+            <div
+              class="bg-grey-3"
+              style="
+                width: 200px;
+                height: 200px;
+                position: relative;
+                border: 1px solid #ccc;
+                border-radius: 8px;
+              "
+              @mousedown="startDrag"
+              @mousemove="onDrag"
+              @mouseup="stopDrag"
+              @mouseleave="stopDrag"
+              @touchstart="startTouch"
+              @touchmove="onTouch"
+              @touchend="stopDrag"
+              ref="pad"
+            >
+              <div class="marker" :style="markerStyle" :class="{ crosshair: dragging }"></div>
+            </div>
+            <q-item-label class="text-bold">Pan</q-item-label>
+            <q-slider
+              class="q-ml-sm"
+              v-model="light.Pan"
+              :min="0"
+              :max="100"
+              :step="1"
+              label
+              color="black"
+              style="opacity: 1"
+            />
+          </div>
         </div>
       </q-card-section>
     </q-card>
@@ -149,11 +151,11 @@ select
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, reactive, computed } from 'vue';
-import { useWebSocket } from 'src/composables/useWebSocket';
+import { ref, watch, reactive, computed, onMounted } from 'vue';
 import type { MovingHead } from 'src/models/MovingHead';
+import { send } from 'src/services/websocket';
+import { subs, dbmData, buildTree } from 'src/composables/dbmTree';
 
-const { connect, send } = useWebSocket('ws://127.0.0.1:8100/ws?id=quasar');
 const pad = ref<HTMLElement | null>(null);
 const dragging = ref(false);
 
@@ -169,10 +171,6 @@ const light = reactive<MovingHead>({
   Tilt: 50,
 });
 
-onMounted(() => {
-  connect();
-});
-
 const markerStyle = computed(() => ({
   position: 'absolute' as const,
   top: `${2 * (100 - light.Tilt)}px`,
@@ -185,6 +183,71 @@ const markerStyle = computed(() => ({
   cursor: 'pointer',
   transform: 'translate(-50%, -50%)',
 }));
+
+onMounted(() => {
+  LoadData();
+});
+
+function LoadData() {
+  send({
+    subscribe: [
+      {
+        path: 'MovingHead',
+        depth: 2,
+      },
+    ],
+  })
+    .then((response) => {
+      if (response?.subscribe) {
+        subs.value = response.subscribe;
+        dbmData.value = buildTree(subs.value);
+      } else {
+        console.log('Response from server:', response);
+      }
+    })
+    .catch((err) => {
+      console.error('Error fetching data:', err);
+    });
+  send({
+    get: [
+      {
+        path: 'MovingHead',
+        query: { depth: 2 },
+      },
+    ],
+  })
+    .then((response) => {
+      if (response?.get) {
+        const pathToLightKey: Record<string, keyof typeof light> = {
+          'MovingHead:Dimmer': 'Brightness',
+          'MovingHead:State': 'State',
+          'MovingHead:Red': 'Red',
+          'MovingHead:Green': 'Green',
+          'MovingHead:Blue': 'Blue',
+          'MovingHead:White': 'White',
+          'MovingHead:Zoom': 'Zoom',
+          'MovingHead:Pan': 'Pan',
+          'MovingHead:Tilt': 'Tilt',
+        };
+
+        Object.entries(pathToLightKey).forEach(([path, key]) => {
+          const sub = subs.value.find((s) => s.path === path);
+          if (sub) {
+            if (key === 'State') {
+              light[key] = Boolean(sub.value);
+            } else {
+              light[key] = Math.round((100 / 255) * Number(sub.value));
+            }
+          }
+        });
+      } else {
+        console.log('Response from server:', response);
+      }
+    })
+    .catch((err) => {
+      console.error('Error fetching data:', err);
+    });
+}
 
 function startDrag(e: MouseEvent) {
   dragging.value = true;
@@ -222,85 +285,89 @@ function updatePosition(e: MouseEvent | Touch) {
 
   light.Pan = Math.round((newX / rect.width) * 100);
   light.Tilt = Math.round(100 - (newY / rect.height) * 100);
-  console.log(light.Pan, light.Tilt);
 }
 
 watch(light, (newVal: MovingHead) => {
   send({
     set: [
       {
+        // State
+        path: 'MovingHead:State',
+        value: Number(newVal.State),
+      },
+      {
         // Red
-        path: 'MovingHead:001:Red',
+        path: 'MovingHead:Red',
         value: Math.round((255 / 100) * newVal.Red * Number(newVal.State)),
       },
       {
         //Red fine
-        path: 'MovingHead:001:RedFine',
+        path: 'MovingHead:RedFine',
         value: Math.round((255 / 100) * newVal.Red * Number(newVal.State)),
       },
       {
         // Green
-        path: 'MovingHead:001:Green',
+        path: 'MovingHead:Green',
         value: Math.round((255 / 100) * newVal.Green * Number(newVal.State)),
       },
       {
         // Green fine
-        path: 'MovingHead:001:GreenFine',
+        path: 'MovingHead:GreenFine',
         value: Math.round((255 / 100) * newVal.Green * Number(newVal.State)),
       },
       {
         // Blue
-        path: 'MovingHead:001:Blue',
+        path: 'MovingHead:Blue',
         value: Math.round((255 / 100) * newVal.Blue * Number(newVal.State)),
       },
       {
         // Blue fine
-        path: 'MovingHead:001:BlueFine',
+        path: 'MovingHead:BlueFine',
         value: Math.round((255 / 100) * newVal.Blue * Number(newVal.State)),
       },
       {
         // White
-        path: 'MovingHead:001:White',
+        path: 'MovingHead:White',
         value: Math.round((255 / 100) * newVal.White * Number(newVal.State)),
       },
       {
         // White fine
-        path: 'MovingHead:001:WhiteFine',
+        path: 'MovingHead:WhiteFine',
         value: Math.round((255 / 100) * newVal.White * newVal.Brightness * Number(newVal.State)),
       },
       {
         // Dimmer
-        path: 'MovingHead:001:Dimmer',
+        path: 'MovingHead:Brightness',
         value: Math.round((255 / 100) * newVal.Brightness * Number(newVal.State)),
       },
       {
         // Dimmer fine
-        path: 'MovingHead:001:DimmerFine',
+        path: 'MovingHead:BrightnessFine',
         value: Math.round((255 / 100) * newVal.Brightness * Number(newVal.State)),
       },
       {
         // Zoom
-        path: 'MovingHead:001:Zoom',
+        path: 'MovingHead:Zoom',
         value: Math.round((255 / 100) * newVal.Zoom),
       },
       {
         // Pan
-        path: 'MovingHead:001:Pan',
+        path: 'MovingHead:Pan',
         value: Math.round((255 / 100) * newVal.Pan),
       },
       {
         // Pan fine
-        path: 'MovingHead:001:PanFine',
+        path: 'MovingHead:PanFine',
         value: Math.round((255 / 100) * newVal.Pan),
       },
       {
         // Tilt
-        path: 'MovingHead:001:Tilt',
+        path: 'MovingHead:Tilt',
         value: Math.round((255 / 100) * newVal.Tilt),
       },
       {
         // Tilt fine
-        path: 'MovingHead:001:TiltFine',
+        path: 'MovingHead:TiltFine',
         value: Math.round((255 / 100) * newVal.Tilt),
       },
     ],
