@@ -12,9 +12,9 @@ select
       <q-card-section class="q-mt-md q-mr-sm row items-start">
         <div class="column justify-center q-ma-lg" style="height: 200px">
           <q-btn
-            @click="light.State = !light.State"
+            @click="changeState"
             round
-            :color="light.State ? 'yellow' : 'blue'"
+            :color="brightness > 0 ? 'yellow' : 'blue'"
             icon="lightbulb"
             style="position: relative"
           />
@@ -25,7 +25,7 @@ select
           class="q-ma-lg"
           vertical
           reverse
-          v-model="light.Brightness"
+          v-model="brightness"
           :min="0"
           :max="100"
           :step="1"
@@ -37,7 +37,7 @@ select
           class="q-ma-lg"
           vertical
           reverse
-          v-model="light.Red"
+          v-model="red"
           :min="0"
           :max="100"
           :step="1"
@@ -50,7 +50,7 @@ select
           class="q-ma-lg"
           vertical
           reverse
-          v-model="light.Green"
+          v-model="green"
           :min="0"
           :max="100"
           :step="1"
@@ -63,7 +63,7 @@ select
           class="q-ma-lg"
           vertical
           reverse
-          v-model="light.Blue"
+          v-model="blue"
           :min="0"
           :max="100"
           :step="1"
@@ -76,7 +76,7 @@ select
           class="q-ma-lg"
           vertical
           reverse
-          v-model="light.White"
+          v-model="white"
           :min="0"
           :max="100"
           :step="1"
@@ -89,7 +89,7 @@ select
           class="q-ma-lg"
           vertical
           reverse
-          v-model="light.Zoom"
+          v-model="zoom"
           :min="0"
           :max="100"
           :step="1"
@@ -97,53 +97,10 @@ select
           color="black"
           style="opacity: 1"
         />
-        <div class="row q-ma-sm">
-          <q-item-label class="text-bold">Tilt</q-item-label>
-          <q-slider
-            class="q-mr-sm"
-            vertical
-            reverse
-            v-model="light.Tilt"
-            :min="0"
-            :max="100"
-            :step="1"
-            label
-            color="black"
-            style="opacity: 1"
-          />
-          <div class="column items-center q-ml-sm">
-            <div
-              class="bg-grey-3"
-              style="
-                width: 200px;
-                height: 200px;
-                position: relative;
-                border: 1px solid #ccc;
-                border-radius: 8px;
-              "
-              @mousedown="startDrag"
-              @mousemove="onDrag"
-              @mouseup="stopDrag"
-              @mouseleave="stopDrag"
-              @touchstart="startTouch"
-              @touchmove="onTouch"
-              @touchend="stopDrag"
-              ref="pad"
-            >
-              <div class="marker" :style="markerStyle" :class="{ crosshair: dragging }"></div>
-            </div>
-            <q-item-label class="text-bold">Pan</q-item-label>
-            <q-slider
-              class="q-ml-sm"
-              v-model="light.Pan"
-              :min="0"
-              :max="100"
-              :step="1"
-              label
-              color="black"
-              style="opacity: 1"
-            />
-          </div>
+
+        <div class="column items-center q-ml-sm">
+          <DragPad v-model:pan="pan" v-model:tilt="tilt" />
+          {{ pan }} {{ tilt }}
         </div>
       </q-card-section>
     </q-card>
@@ -151,48 +108,26 @@ select
 </template>
 
 <script setup lang="ts">
-import { ref, watch, reactive, computed, onMounted } from 'vue';
-import type { MovingHead } from 'src/models/MovingHead';
+import { computed, onMounted } from 'vue';
 import { send } from 'src/services/websocket';
-import { subs, dbmData, buildTree } from 'src/composables/dbmTree';
+import { subs, buildTree, dbmData } from 'src/composables/dbmTree';
+import DragPad from './DragPad.vue';
 
-const pad = ref<HTMLElement | null>(null);
-const dragging = ref(false);
-
-const light = reactive<MovingHead>({
-  State: false,
-  Brightness: 0,
-  Red: 0,
-  Green: 0,
-  Blue: 0,
-  White: 0,
-  Zoom: 0,
-  Pan: 50,
-  Tilt: 50,
-});
-
-const markerStyle = computed(() => ({
-  position: 'absolute' as const,
-  top: `${2 * (100 - light.Tilt)}px`,
-  left: `${2 * light.Pan}px`,
-  width: '12px',
-  height: '12px',
-  borderRadius: '50%',
-  background: 'red',
-  border: '2px solid white',
-  cursor: 'pointer',
-  transform: 'translate(-50%, -50%)',
-}));
+const red = updateValue('MovingHead:Red', true);
+const green = updateValue('MovingHead:Green', true);
+const blue = updateValue('MovingHead:Blue', true);
+const white = updateValue('MovingHead:White', true);
+const brightness = updateBrightnessValue('MovingHead:Brightness');
+const pan = updateValue('MovingHead:Pan', true);
+const tilt = updateValue('MovingHead:Tilt', true);
+const zoom = updateValue('MovingHead:Zoom');
+const state = updateValue('MovingHead:State');
 
 onMounted(() => {
-  LoadData();
-});
-
-function LoadData() {
   send({
     subscribe: [
       {
-        path: 'MovingHead',
+        path: '.*',
         depth: 2,
       },
     ],
@@ -208,175 +143,60 @@ function LoadData() {
     .catch((err) => {
       console.error('Error fetching data:', err);
     });
-  send({
-    get: [
-      {
-        path: 'MovingHead',
-        query: { depth: 2 },
-      },
-    ],
-  })
-    .then((response) => {
-      if (response?.get) {
-        const pathToLightKey: Record<string, keyof typeof light> = {
-          'MovingHead:Dimmer': 'Brightness',
-          'MovingHead:State': 'State',
-          'MovingHead:Red': 'Red',
-          'MovingHead:Green': 'Green',
-          'MovingHead:Blue': 'Blue',
-          'MovingHead:White': 'White',
-          'MovingHead:Zoom': 'Zoom',
-          'MovingHead:Pan': 'Pan',
-          'MovingHead:Tilt': 'Tilt',
-        };
-
-        Object.entries(pathToLightKey).forEach(([path, key]) => {
-          const sub = subs.value.find((s) => s.path === path);
-          if (sub) {
-            if (key === 'State') {
-              light[key] = Boolean(sub.value);
-            } else {
-              light[key] = Math.round((100 / 255) * Number(sub.value));
-            }
-          }
-        });
-      } else {
-        console.log('Response from server:', response);
-      }
-    })
-    .catch((err) => {
-      console.error('Error fetching data:', err);
-    });
-}
-
-function startDrag(e: MouseEvent) {
-  dragging.value = true;
-  updatePosition(e);
-}
-
-function onDrag(e: MouseEvent) {
-  if (!dragging.value) return;
-  updatePosition(e);
-}
-
-function stopDrag() {
-  dragging.value = false;
-}
-
-function startTouch(e: TouchEvent) {
-  const touch = e.touches[0];
-  if (!touch) return;
-  dragging.value = true;
-  updatePosition(touch);
-}
-
-function onTouch(e: TouchEvent) {
-  if (!dragging.value) return;
-  const touch = e.touches[0];
-  if (!touch) return;
-  updatePosition(touch);
-}
-
-function updatePosition(e: MouseEvent | Touch) {
-  if (!pad.value) return;
-  const rect = pad.value.getBoundingClientRect();
-  const newX = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
-  const newY = Math.min(Math.max(0, e.clientY - rect.top), rect.height);
-
-  light.Pan = Math.round((newX / rect.width) * 100);
-  light.Tilt = Math.round(100 - (newY / rect.height) * 100);
-}
-
-watch(light, (newVal: MovingHead) => {
-  send({
-    set: [
-      {
-        // State
-        path: 'MovingHead:State',
-        value: Number(newVal.State),
-      },
-      {
-        // Red
-        path: 'MovingHead:Red',
-        value: Math.round((255 / 100) * newVal.Red * Number(newVal.State)),
-      },
-      {
-        //Red fine
-        path: 'MovingHead:RedFine',
-        value: Math.round((255 / 100) * newVal.Red * Number(newVal.State)),
-      },
-      {
-        // Green
-        path: 'MovingHead:Green',
-        value: Math.round((255 / 100) * newVal.Green * Number(newVal.State)),
-      },
-      {
-        // Green fine
-        path: 'MovingHead:GreenFine',
-        value: Math.round((255 / 100) * newVal.Green * Number(newVal.State)),
-      },
-      {
-        // Blue
-        path: 'MovingHead:Blue',
-        value: Math.round((255 / 100) * newVal.Blue * Number(newVal.State)),
-      },
-      {
-        // Blue fine
-        path: 'MovingHead:BlueFine',
-        value: Math.round((255 / 100) * newVal.Blue * Number(newVal.State)),
-      },
-      {
-        // White
-        path: 'MovingHead:White',
-        value: Math.round((255 / 100) * newVal.White * Number(newVal.State)),
-      },
-      {
-        // White fine
-        path: 'MovingHead:WhiteFine',
-        value: Math.round((255 / 100) * newVal.White * newVal.Brightness * Number(newVal.State)),
-      },
-      {
-        // Dimmer
-        path: 'MovingHead:Brightness',
-        value: Math.round((255 / 100) * newVal.Brightness * Number(newVal.State)),
-      },
-      {
-        // Dimmer fine
-        path: 'MovingHead:BrightnessFine',
-        value: Math.round((255 / 100) * newVal.Brightness * Number(newVal.State)),
-      },
-      {
-        // Zoom
-        path: 'MovingHead:Zoom',
-        value: Math.round((255 / 100) * newVal.Zoom),
-      },
-      {
-        // Pan
-        path: 'MovingHead:Pan',
-        value: Math.round((255 / 100) * newVal.Pan),
-      },
-      {
-        // Pan fine
-        path: 'MovingHead:PanFine',
-        value: Math.round((255 / 100) * newVal.Pan),
-      },
-      {
-        // Tilt
-        path: 'MovingHead:Tilt',
-        value: Math.round((255 / 100) * newVal.Tilt),
-      },
-      {
-        // Tilt fine
-        path: 'MovingHead:TiltFine',
-        value: Math.round((255 / 100) * newVal.Tilt),
-      },
-    ],
-  })
-    .then((response) => {
-      console.log('Response from server:', response);
-    })
-    .catch((err) => {
-      console.error('Error fetching data:', err);
-    });
 });
+
+function changeState() {
+  if (brightness.value === 0) {
+    if (state.value === 0) {
+      brightness.value = 100;
+      return;
+    }
+    brightness.value = state.value;
+    return;
+  }
+  state.value = brightness.value;
+  brightness.value = 0;
+}
+
+function updateValue(path: string, isDouble = false) {
+  return computed({
+    get() {
+      const sub = subs.value.find((s) => s.path === path);
+      const value = sub ? Number(sub.value ?? 0) : 0;
+      return isDouble ? Math.round((100 / 255) * value) : Math.round((100 / 255) * value);
+    },
+    set(val) {
+      const baseValue = Math.round((255 / 100) * val);
+      const setPaths = [{ path, value: baseValue }];
+
+      if (isDouble) {
+        setPaths.push({ path: `${path}Fine`, value: baseValue });
+      }
+
+      send({
+        set: setPaths,
+      }).catch((err) => console.error(`Failed to update ${path.split(':')[1]}:`, err));
+    },
+  });
+}
+
+function updateBrightnessValue(path: string) {
+  return computed({
+    get() {
+      const sub = subs.value.find((s) => s.path === path);
+      const value = sub ? Number(sub.value ?? 0) : 0;
+      return Math.round((100 / 255) * value);
+    },
+    set(val) {
+      const baseValue = Math.round((255 / 100) * val);
+      const setPaths = [{ path, value: baseValue }];
+      setPaths.push({ path: `${path}Fine`, value: baseValue });
+      setPaths.push({ path: `MovingHead:Strobe`, value: 255 });
+
+      send({
+        set: setPaths,
+      }).catch((err) => console.error(`Failed to update ${path.split(':')[1]}:`, err));
+    },
+  });
+}
 </script>

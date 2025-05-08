@@ -28,7 +28,7 @@
               v-if="props.node.value !== undefined"
               v-model="props.node.value"
               class="q-ml-xl bg-grey text-white"
-              @save="onValueEdit(props.node)"
+              @save="(val) => onValueEdit(val, props.node)"
             >
               <template v-if="props.node.value !== undefined" v-slot="scope">
                 <q-input
@@ -94,32 +94,19 @@ onMounted(() => {
 //   }
 // }
 
-function onValueEdit(node: TreeNode) {
-  console.log(88, node.value);
-
-  const sub = subs.value.find((s) => s.path === node.key);
+function onValueEdit(newValue: undefined, node: TreeNode) {
+  const sub = subs.value.find((s) => s.uuid === node.key);
   if (sub) {
-    sub.value = node.value;
     send({
       set: [
         {
           path: sub.path ?? '',
-          value: Number(node.value),
+          value: newValue,
         },
       ],
-    })
-      .then((response) => {
-        if (response?.subscribe) {
-          subs.value = response.subscribe;
-          dbmData.value = buildTree(subs.value);
-        } else {
-          console.log('Response from server:', response);
-        }
-      })
-      .catch((err) => {
-        console.error('Error fetching data:', err);
-      });
-    // Optionally: push to server or log
+    }).catch((err) => {
+      console.error('Error fetching data:', err);
+    });
   }
 }
 </script>

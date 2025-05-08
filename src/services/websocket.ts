@@ -52,9 +52,9 @@ export function initWebSocket(url: string, $q?: QVueGlobals) {
           const target = subs.value.find((s) => s.path === pub.path);
           if (target) {
             target.value = pub.value ?? '';
-            dbmData.value = buildTree(subs.value);
           }
         });
+        dbmData.value = buildTree(subs.value);
       } else {
         console.warn('Unmatched message:', message);
       }
