@@ -95,15 +95,22 @@
           color="purple"
           style="opacity: 0.8"
         />
+        <div class="colums q-ma-xl">
+          <q-btn color="secondary" @click="settings = !settings" icon="settings">Settings</q-btn>
+          <SettingDialog :settings-dialog="settings"></SettingDialog>
+        </div>
       </q-card-section>
     </q-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { watch, reactive } from 'vue';
+import { watch, reactive, ref } from 'vue';
 import type { Light } from 'src/models/Light';
 import { send } from 'src/services/websocket';
+import SettingDialog from 'src/components/SettingDomeLight.vue';
+
+const settings = ref(false);
 
 const light = reactive<Light>({
   State: false,
