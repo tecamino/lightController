@@ -2,10 +2,16 @@ import type { Response } from 'src/models/Response';
 import type { Publish } from 'src/models/Publish';
 import type { Request } from 'src/models/Request';
 import type { QVueGlobals } from 'quasar';
-import { subs, buildTree, dbmData } from 'src/composables/dbmTree';
-import { ref } from 'vue';
+import {
+  getAllSubscriptions,
+  getSubscriptionsByPath,
+  buildTree,
+  dbmData,
+} from 'src/composables/dbmTree';
+import { ref, reactive } from 'vue';
 
 const pendingResponses = new Map<string, (data: Response | undefined) => void>();
+export const lastKnownValues = reactive(new Map<string, string>());
 
 export let socket: WebSocket | null = null;
 const isConnected = ref(false);
@@ -47,16 +53,38 @@ export function initWebSocket(url: string, $q?: QVueGlobals) {
       if (id && pendingResponses.has(id)) {
         pendingResponses.get(id)?.(message); // resolve the promise
         pendingResponses.delete(id);
-      } else if (message.publish) {
-        message.publish.forEach((pub: Publish) => {
-          const target = subs.value.find((s) => s.path === pub.path);
-          if (target) {
-            target.value = pub.value ?? '';
+        return;
+      }
+
+      if (message.publish) {
+        let changed = false;
+
+        (message.publish as Publish[]).forEach((pub) => {
+          const path = pub.path;
+          const value = pub.value ?? '';
+
+          if (path === undefined) {
+            return;
+          }
+
+          const oldValue = lastKnownValues.get(path);
+          if (oldValue !== value) {
+            lastKnownValues.set(path, value); // this is now reactive
+
+            const existing = getSubscriptionsByPath(path);
+            if (existing) {
+              existing.value = value;
+            } else {
+              getAllSubscriptions().push({ path, value, uuid: pub.uuid });
+            }
+
+            changed = true;
           }
         });
-        dbmData.value = buildTree(subs.value);
-      } else {
-        console.warn('Unmatched message:', message);
+
+        if (changed) {
+          dbmData.value = buildTree(getAllSubscriptions()); // rebuild reactive tree
+        }
       }
     };
   };
@@ -66,10 +94,6 @@ export function initWebSocket(url: string, $q?: QVueGlobals) {
       socket.close();
     }
   };
-
-  // onBeforeUnmount(() => {
-  //   close();
-  // });
 
   return {
     connect,
@@ -107,7 +131,6 @@ export function send(data: Request): Promise<Response | undefined> {
 
   return new Promise((resolve) => {
     pendingResponses.set(id, resolve);
-
     waitForSocketConnection()
       .then(() => {
         socket?.send(JSON.stringify(payload));
@@ -121,5 +144,5 @@ export function send(data: Request): Promise<Response | undefined> {
 }
 
 function generateId(): string {
-  return Math.random().toString(36).substr(2, 9); // simple unique ID
+  return Math.random().toString(36).substring(2, 9); // simple unique ID
 }

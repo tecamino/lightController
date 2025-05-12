@@ -1,14 +1,14 @@
 import type { Subs } from 'src/models/Subscribe';
-import { ref } from 'vue';
+import { ref, nextTick } from 'vue';
 
-export const dbmData = ref<TreeNode[]>(buildTree([]));
+const Subscriptions = ref<Subs>([]);
 
-export const subs = ref<Subs>([]);
+export const dbmData = ref<TreeNode[]>([]);
 
 export interface TreeNode {
-  path: string;
+  path: string | undefined;
   key?: string; // optional: useful for QTree's node-key
-  value?: string | undefined;
+  value?: string | number | boolean | undefined;
   children?: TreeNode[];
 }
 
@@ -22,6 +22,8 @@ export function buildTree(subs: Subs): TreeNode[] {
   };
 
   const root: TreeMap = {};
+
+  Subscriptions.value = subs;
 
   for (const item of subs) {
     const pathParts = item.path?.split(':') ?? [];
@@ -62,4 +64,47 @@ export function buildTree(subs: Subs): TreeNode[] {
       children: convert(root),
     },
   ];
+}
+
+export function getTreeElementByPath(path: string) {
+  return dbmData.value.find((s) => s.path === path);
+}
+
+export function getSubscriptionsByUuid(uid: string | undefined) {
+  return Subscriptions.value.find((s) => s.uuid === uid);
+}
+
+export function addChildrentoTree(subs: Subs) {
+  Subscriptions.value.push(...subs);
+  void nextTick(() => {
+    dbmData.value = buildTree(Subscriptions.value);
+  });
+}
+
+export function removeSubtreeByParentKey(parentKey: string) {
+  // Find the parent node using its uuid
+  const parent = Subscriptions.value.find((s) => s.uuid === parentKey);
+  if (!parent || !parent.path) return;
+
+  const parentPath = parent.path;
+
+  // Now filter out the children, but NOT the parent itself
+  Subscriptions.value = Subscriptions.value.filter((s) => {
+    // Keep the parent itself (don't remove it)
+    if (s.uuid === parentKey) return true;
+
+    // Remove any child whose path starts with parentPath + '/' (descendants)
+    return !s.path?.startsWith(parentPath + ':');
+  });
+
+  // Rebuild the tree after removing children, but keeping the parent
+  dbmData.value = buildTree(Subscriptions.value);
+}
+
+export function getSubscriptionsByPath(path: string) {
+  return Subscriptions.value.find((s) => s.path === path);
+}
+
+export function getAllSubscriptions() {
+  return Subscriptions.value;
 }

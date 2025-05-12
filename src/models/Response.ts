@@ -7,5 +7,6 @@ export type Response = {
   get?: Gets;
   set?: Sets;
   subscribe?: Subs;
+  unsubscribe?: Subs;
   publish?: Pubs;
 };

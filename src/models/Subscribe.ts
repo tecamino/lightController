@@ -1,6 +1,6 @@
 export type Subscribe = {
-  uuid?: string;
-  path?: string;
+  uuid?: string | undefined;
+  path?: string | undefined;
   depth?: number;
   value?: string | number | boolean | undefined;
 };
