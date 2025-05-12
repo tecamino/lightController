@@ -97,10 +97,21 @@ select
           color="black"
           style="opacity: 1"
         />
-
         <div class="column items-center q-ml-sm">
-          <DragPad v-model:pan="pan" v-model:tilt="tilt" />
-          {{ pan }} {{ tilt }}
+          <DragPad
+            v-model:pan="pan"
+            v-model:reverse-pan="reversePan"
+            v-model:tilt="tilt"
+            v-model:reverse-tilt="reverseTilt"
+          />
+        </div>
+        <div class="colums q-ma-xl">
+          <q-btn color="secondary" @click="settings = !settings" icon="settings">Settings</q-btn>
+          <SettingDialog
+            :settings-dialog="settings"
+            v-model:reverse-pan="reversePan"
+            v-model:reverse-tilt="reverseTilt"
+          ></SettingDialog>
         </div>
       </q-card-section>
     </q-card>
@@ -108,10 +119,12 @@ select
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { send } from 'src/services/websocket';
-import { subs, buildTree, dbmData } from 'src/composables/dbmTree';
+import { LocalStorage } from 'quasar';
+import { getSubscriptionsByPath, buildTree, dbmData } from 'src/composables/dbmTree';
 import DragPad from './DragPad.vue';
+import SettingDialog from './SettingMovingHead.vue';
 
 const red = updateValue('MovingHead:Red', true);
 const green = updateValue('MovingHead:Green', true);
@@ -122,20 +135,46 @@ const pan = updateValue('MovingHead:Pan', true);
 const tilt = updateValue('MovingHead:Tilt', true);
 const zoom = updateValue('MovingHead:Zoom');
 const state = updateValue('MovingHead:State');
+const settings = ref(false);
+const reversePan = ref(false);
+const reverseTilt = ref(false);
 
 onMounted(() => {
+  reversePan.value = LocalStorage.getItem('reversePan') ?? false;
+  reverseTilt.value = LocalStorage.getItem('reverseTilt') ?? false;
+
   send({
     subscribe: [
       {
-        path: '.*',
-        depth: 2,
+        path: 'MovingHead:.*',
+        depth: 0,
       },
     ],
   })
     .then((response) => {
       if (response?.subscribe) {
-        subs.value = response.subscribe;
-        dbmData.value = buildTree(subs.value);
+        dbmData.value = buildTree(response.subscribe ?? []);
+      } else {
+        console.log('Response from server:', response);
+      }
+    })
+    .catch((err) => {
+      console.error('Error fetching data:', err);
+    });
+});
+
+onUnmounted(() => {
+  send({
+    unsubscribe: [
+      {
+        path: 'MovingHead:.*',
+        depth: 0,
+      },
+    ],
+  })
+    .then((response) => {
+      if (response?.subscribe) {
+        dbmData.value = buildTree(response.subscribe ?? []);
       } else {
         console.log('Response from server:', response);
       }
@@ -161,7 +200,7 @@ function changeState() {
 function updateValue(path: string, isDouble = false) {
   return computed({
     get() {
-      const sub = subs.value.find((s) => s.path === path);
+      const sub = getSubscriptionsByPath(path);
       const value = sub ? Number(sub.value ?? 0) : 0;
       return isDouble ? Math.round((100 / 255) * value) : Math.round((100 / 255) * value);
     },
@@ -183,7 +222,7 @@ function updateValue(path: string, isDouble = false) {
 function updateBrightnessValue(path: string) {
   return computed({
     get() {
-      const sub = subs.value.find((s) => s.path === path);
+      const sub = getSubscriptionsByPath(path);
       const value = sub ? Number(sub.value ?? 0) : 0;
       return Math.round((100 / 255) * value);
     },

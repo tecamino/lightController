@@ -17,6 +17,7 @@ import { send } from 'src/services/websocket';
 
 function handleAction(action: string) {
   console.log(`Action '${action}' on node:`, contextMenu.value.node);
+
   // Add your actual logic here
   switch (action) {
     case 'Add':
