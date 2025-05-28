@@ -105,11 +105,14 @@
 </template>
 
 <script setup lang="ts">
+import { useQuasar } from 'quasar';
 import { watch, reactive, ref } from 'vue';
 import type { Light } from 'src/models/Light';
-import { send } from 'src/services/websocket';
-import SettingDialog from 'src/components/SettingDomeLight.vue';
+import { setValues } from 'src/services/websocket';
+import SettingDialog from 'src/components/lights/SettingDomeLight.vue';
+import { NotifyResponse } from 'src/composables/notify';
 
+const $q = useQuasar();
 const settings = ref(false);
 
 const light = reactive<Light>({
@@ -124,39 +127,37 @@ const light = reactive<Light>({
 });
 
 watch(light, (newVal: Light) => {
-  send({
-    set: [
-      {
-        path: 'Light:001:001',
-        value: Math.round((255 / 10000) * newVal.Red * newVal.Brightness * Number(newVal.State)),
-      },
-      {
-        path: 'Light:001:002',
-        value: Math.round((255 / 10000) * newVal.Green * newVal.Brightness * Number(newVal.State)),
-      },
-      {
-        path: 'Light:001:003',
-        value: Math.round((255 / 10000) * newVal.Blue * newVal.Brightness * Number(newVal.State)),
-      },
-      {
-        path: 'Light:001:004',
-        value: Math.round((255 / 10000) * newVal.White * newVal.Brightness * Number(newVal.State)),
-      },
-      {
-        path: 'Light:001:005',
-        value: Math.round((255 / 10000) * newVal.Amber * newVal.Brightness * Number(newVal.State)),
-      },
-      {
-        path: 'Light:001:006',
-        value: Math.round((255 / 10000) * newVal.Purple * newVal.Brightness * Number(newVal.State)),
-      },
-    ],
-  })
+  setValues([
+    {
+      path: 'Light:001:001',
+      value: Math.round((255 / 10000) * newVal.Red * newVal.Brightness * Number(newVal.State)),
+    },
+    {
+      path: 'Light:001:002',
+      value: Math.round((255 / 10000) * newVal.Green * newVal.Brightness * Number(newVal.State)),
+    },
+    {
+      path: 'Light:001:003',
+      value: Math.round((255 / 10000) * newVal.Blue * newVal.Brightness * Number(newVal.State)),
+    },
+    {
+      path: 'Light:001:004',
+      value: Math.round((255 / 10000) * newVal.White * newVal.Brightness * Number(newVal.State)),
+    },
+    {
+      path: 'Light:001:005',
+      value: Math.round((255 / 10000) * newVal.Amber * newVal.Brightness * Number(newVal.State)),
+    },
+    {
+      path: 'Light:001:006',
+      value: Math.round((255 / 10000) * newVal.Purple * newVal.Brightness * Number(newVal.State)),
+    },
+  ])
     .then((response) => {
-      console.log('Response from server:', response);
+      NotifyResponse($q, response);
     })
     .catch((err) => {
-      console.error('Error fetching data:', err);
+      NotifyResponse($q, err, 'error');
     });
 });
 </script>

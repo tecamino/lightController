@@ -6,11 +6,11 @@
 
         <q-toolbar-title> Light Control </q-toolbar-title>
 
-        <div>Version 0.0.1</div>
+        <div>Version {{ version }}</div>
       </q-toolbar>
     </q-header>
 
-    <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
+    <q-drawer v-model="leftDrawerOpen" bordered>
       <q-list>
         <q-item to="/" clickable v-ripple>
           <q-item-section>Home</q-item-section>
@@ -29,6 +29,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { version } from '../..//package.json';
 
 const leftDrawerOpen = ref(false);
 
