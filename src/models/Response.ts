@@ -9,4 +9,6 @@ export type Response = {
   subscribe?: Subs;
   unsubscribe?: Subs;
   publish?: Pubs;
+  error?: boolean;
+  message?: string;
 };

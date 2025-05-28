@@ -9,6 +9,7 @@ type Get = {
   rights?: string;
   value?: undefined;
   query?: Query;
+  hasChild?: boolean;
 };
 
 export type Gets = Get[];

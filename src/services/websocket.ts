@@ -4,11 +4,13 @@ import type { Request } from 'src/models/Request';
 import type { QVueGlobals } from 'quasar';
 import {
   getAllSubscriptions,
-  getSubscriptionsByPath,
   buildTree,
   dbmData,
-} from 'src/composables/dbmTree';
+  getSubscriptionsByUuid,
+} from 'src/composables/dbm/dbmTree';
 import { ref, reactive } from 'vue';
+import type { Subs } from 'src/models/Subscribe';
+import type { Sets } from 'src/models/Set';
 
 const pendingResponses = new Map<string, (data: Response | undefined) => void>();
 export const lastKnownValues = reactive(new Map<string, string>());
@@ -60,22 +62,22 @@ export function initWebSocket(url: string, $q?: QVueGlobals) {
         let changed = false;
 
         (message.publish as Publish[]).forEach((pub) => {
-          const path = pub.path;
+          const uuid = pub.uuid;
           const value = pub.value ?? '';
 
-          if (path === undefined) {
+          if (uuid === undefined) {
             return;
           }
 
-          const oldValue = lastKnownValues.get(path);
+          const oldValue = lastKnownValues.get(String(uuid));
           if (oldValue !== value) {
-            lastKnownValues.set(path, value); // this is now reactive
+            lastKnownValues.set(uuid, value); // this is now reactive
 
-            const existing = getSubscriptionsByPath(path);
+            const existing = getSubscriptionsByUuid(pub.uuid);
             if (existing) {
               existing.value = value;
             } else {
-              getAllSubscriptions().push({ path, value, uuid: pub.uuid });
+              getAllSubscriptions()?.push({ value, uuid: uuid });
             }
 
             changed = true;
@@ -125,8 +127,20 @@ function waitForSocketConnection(): Promise<void> {
   });
 }
 
-export function send(data: Request): Promise<Response | undefined> {
-  const id = generateId();
+export function subscribe(data: Subs): Promise<Response | undefined> {
+  return send({ subscribe: data });
+}
+
+export function unsubscribe(data: Subs): Promise<Response | undefined> {
+  return send({ unsubscribe: data });
+}
+
+export function setValues(data: Sets): Promise<Response | undefined> {
+  return send({ set: data });
+}
+
+function send(data: Request): Promise<Response | undefined> {
+  const id = Math.random().toString(36).substring(2, 9); // simple unique ID;
   const payload = { ...data, id };
 
   return new Promise((resolve) => {
@@ -141,8 +155,4 @@ export function send(data: Request): Promise<Response | undefined> {
         resolve(undefined); // or reject(err) if strict failure is desired
       });
   });
-}
-
-function generateId(): string {
-  return Math.random().toString(36).substring(2, 9); // simple unique ID
 }
