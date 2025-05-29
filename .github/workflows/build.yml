@@ -42,9 +42,9 @@ jobs:
 
       - name: Set up Git credentials for private modules
         run: |
-          git config --global url."https://oauth2:${{ secrets.GH_PAT_FOR_MODULES }}@github.com".insteadOf "https://github.com"
+          git config --global url."https://oauth2:${{ secrets.GH_PAT }}@github.com".insteadOf "https://github.com"
         env:
-          GH_PAT_FOR_MODULES: ${{ secrets.GH_PAT_FOR_MODULES }} # Make sure the secret is passed
+          GH_PAT_FOR_MODULES: ${{ secrets.GH_PAT }}
 
       - name: Go Mod Tidy & Download
         working-directory: ./backend
