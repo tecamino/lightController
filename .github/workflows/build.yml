@@ -60,5 +60,5 @@ jobs:
         with:
           name: binaries-${{ matrix.goos }}-${{ matrix.goarch }}
           path: |
-		    dist/spa
-			backend/server
+            dist/spa
+            backend/server
