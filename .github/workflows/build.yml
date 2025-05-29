@@ -47,6 +47,7 @@ jobs:
           GH_PAT_FOR_MODULES: ${{ secrets.GH_PAT_FOR_MODULES }} # Make sure the secret is passed
 
       - name: Go Mod Tidy & Download
+        working-directory: ./backend
         run: go mod tidy -v
 
       - name: Build go backend binary
