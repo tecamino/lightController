@@ -21,10 +21,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set ip Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
 
@@ -36,7 +36,7 @@ jobs:
           npm install -g @quasar/cli quasar build
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: '1.24.0'
 
@@ -45,6 +45,16 @@ jobs:
           git config --global url."https://oauth2:${{ secrets.GH_PAT }}@github.com".insteadOf "https://github.com"
         env:
           GH_PAT_FOR_MODULES: ${{ secrets.GH_PAT }}
+
+      - name: Restore Go module cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build # Optional, but good for build cache
+          key: ${{ runner.os }}-${{ matrix.goos }}-${{ matrix.goarch }}-go-${{ hashFiles('backend/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.goos }}-${{ matrix.goarch }}-go-
 
       - name: Go Mod Tidy & Download
         working-directory: ./backend
@@ -55,15 +65,15 @@ jobs:
         run: |
           mkdir -p build
           if [ "${{ matrix.goos }}" == "windows" ]; then
-            GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o build/tecamino-dbm-${{ matrix.goos }}-${{ matrix.goarch }}.exe main.go
+            GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o build/server-${{ matrix.goos }}-${{ matrix.goarch }}.exe main.go
           else
-            GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o build/tecamino-dbm-${{ matrix.goos }}-${{ matrix.goarch }} main.go
+            GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o build/server-${{ matrix.goos }}-${{ matrix.goarch }} main.go
           fi
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: spa-and-backend
+          name: lightcontroller-${{ matrix.goos }}-${{ matrix.goarch }}
           path: |
-            dist/spa
-            build/
+            ./dist/spa
+            ./backend/build/
