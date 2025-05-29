@@ -42,8 +42,12 @@ jobs:
 
       - name: Set up Git credentials for private modules
         run: |
-          git config --global url."https://${{ secrets.GH_PAT }}@github.com/".insteadOf "https://github.com/"
-          echo "GOPRIVATE=github.com/tecamino/*" >> $GITHUB_ENV
+          git config --global url."https://oauth2:${{ secrets.GH_PAT_FOR_MODULES }}@github.com".insteadOf "https://github.com"
+        env:
+          GH_PAT_FOR_MODULES: ${{ secrets.GH_PAT_FOR_MODULES }} # Make sure the secret is passed
+
+      - name: Go Mod Tidy & Download
+        run: go mod tidy -v
 
       - name: Build go backend binary
         working-directory: ./backend
