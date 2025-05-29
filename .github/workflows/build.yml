@@ -63,7 +63,7 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: binaries-${{ matrix.goos }}-${{ matrix.goarch }}
+          name: spa-and-backend
           path: |
             dist/spa
-            backend/server
+            build/
