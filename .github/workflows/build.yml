@@ -31,10 +31,12 @@ jobs:
       - name: Install dependecies
         run: npm install
 
-      - name: Build Quasar SPA
-        run: |
-          npm install -g @quasar/cli quasar build
+      - name: Install Quasar CLI
+        run: npm install -g @quasar/cli
 
+      - name: Build Quasar SPA
+        run: quasar build
+          
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
