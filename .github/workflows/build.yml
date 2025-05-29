@@ -1,0 +1,64 @@
+name: Build Quasar SPA and Go Backend for lightController
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        goos: [linux, windows]
+        goarch: [amd64, arm, arm64]
+        exclude:
+          - goos: windows
+            goarch: arm
+          - goos: windows
+            goarch: arm64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set ip Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependecies
+        run: npm install
+
+      - name: Build Quasar SPA
+        run: |
+          npm install -g @quasar/cli quasar build
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24.0'
+
+      - name: Set up Git credentials for private modules
+        run: |
+          git config --global url."https://${{ secrets.GH_PAT }}@github.com/".insteadOf "https://github.com/"
+          echo "GOPRIVATE=github.com/tecamino/*" >> $GITHUB_ENV
+
+      - name: Build go backend binary
+        working-directory: ./backend
+        run: |
+          mkdir -p build
+          if [ "${{ matrix.goos }}" == "windows" ]; then
+            GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o build/tecamino-dbm-${{ matrix.goos }}-${{ matrix.goarch }}.exe main.go
+          else
+            GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o build/tecamino-dbm-${{ matrix.goos }}-${{ matrix.goarch }} main.go
+          fi
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: binaries-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: |
+		    dist/spa
+			backend/server
