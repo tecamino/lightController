@@ -38,6 +38,7 @@ jobs:
         run: quasar build
           
       - name: Set up Go
+        working-directory: ./backend
         uses: actions/setup-go@v5
         with:
           go-version: '1.24.0'
@@ -65,11 +66,10 @@ jobs:
       - name: Build go backend binary
         working-directory: ./backend
         run: |
-          mkdir -p build
           if [ "${{ matrix.goos }}" == "windows" ]; then
-            GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o build/server-${{ matrix.goos }}-${{ matrix.goarch }}.exe main.go
+            GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o ../server-${{ matrix.goos }}-${{ matrix.goarch }}.exe main.go
           else
-            GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o build/server-${{ matrix.goos }}-${{ matrix.goarch }} main.go
+            GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o ../server-${{ matrix.goos }}-${{ matrix.goarch }} main.go
           fi
 
       - name: Upload build artifacts
@@ -78,4 +78,4 @@ jobs:
           name: lightcontroller-${{ matrix.goos }}-${{ matrix.goarch }}
           path: |
             ./dist/spa
-            ./backend/build/
+            server-${{ matrix.goos }}-${{ matrix.goarch }}${{ (matrix.goos == 'windows' && '.exe') || '' }}
