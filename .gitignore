@@ -35,5 +35,5 @@ yarn-error.log*
 # local .db files
 *.db
 
-# local .db files
+# local .log files
 *.log
