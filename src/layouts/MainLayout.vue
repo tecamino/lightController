@@ -2,8 +2,13 @@
   <q-layout view="lHh Lpr lFf">
     <q-header elevated>
       <q-toolbar>
+        <q-img
+          src="src/assets/LOGO_CF-ICON_color.svg"
+          alt="Logo"
+          style="width: 40px; height: 40px; background-color: var(--q-primary)"
+          class="q-mr-sm"
+        />
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
-
         <q-toolbar-title> Light Control </q-toolbar-title>
 
         <div>Version {{ version }}</div>
@@ -12,11 +17,13 @@
 
     <q-drawer v-model="leftDrawerOpen" bordered>
       <q-list>
-        <q-item to="/" clickable v-ripple>
+        <q-item to="/" exact clickable v-ripple @click="closeDrawer">
           <q-item-section>Home</q-item-section>
         </q-item>
-
-        <q-item to="/data" clickable v-ripple>
+        <q-item to="/scenes" clickable v-ripple @click="closeDrawer">
+          <q-item-section>Scenes</q-item-section>
+        </q-item>
+        <q-item to="/data" clickable v-ripple @click="closeDrawer">
           <q-item-section>Data</q-item-section>
         </q-item>
       </q-list>
@@ -35,5 +42,9 @@ const leftDrawerOpen = ref(false);
 
 function toggleLeftDrawer() {
   leftDrawerOpen.value = !leftDrawerOpen.value;
+}
+
+function closeDrawer() {
+  leftDrawerOpen.value = false;
 }
 </script>
