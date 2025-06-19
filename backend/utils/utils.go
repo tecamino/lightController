@@ -2,7 +2,9 @@ package utils
 
 import (
 	"fmt"
+	"io/fs"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 
 	"github.com/tecamino/tecamino-logger/logging"
@@ -43,4 +45,16 @@ func OpenBrowser(url string, logger *logging.Logger) error {
 	}
 
 	return fmt.Errorf("could not open browser")
+}
+
+func FindAllFiles(rootDir, fileExtention string) (files []string, err error){
+	err =	filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
+		if   d.IsDir() {
+			return nil
+		} else if filepath.Ext(d.Name()) == fileExtention{
+			files = append(files, path)
+		}
+		return err
+	})
+	return 
 }

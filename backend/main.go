@@ -2,15 +2,19 @@ package main
 
 import (
 	"backend/login"
+	secenes "backend/scenes"
 	"backend/server"
 	"backend/utils"
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/tecamino/tecamino-logger/logging"
 )
@@ -52,26 +56,46 @@ func main() {
 		panic(err)
 	}
 
+	//new scenes handler
+	scenesHandler := secenes.NewScenesHandler("")
+
 	// new server
 	s := server.NewServer()
 
+	s.Routes.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:9000"},
+		AllowMethods:     []string{"POST", "GET", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type"},
+		AllowCredentials: true,
+	}))
+
 	api := s.Routes.Group("/api")
 	//set routes
+	api.GET("/loadScenes", scenesHandler.LoadScenes)
 	api.POST("/login", loginManager.Login)
 	api.POST("/user/add", loginManager.AddUser)
+	api.POST("/saveScene", scenesHandler.SaveScene)
+	api.POST("/loadScene", scenesHandler.LoadScene)
 	api.DELETE("/user", loginManager.RemoveUser)
+	api.DELETE("/deleteScene", scenesHandler.DeleteScene)
 
 	// Serve static files
-	s.Routes.StaticFS("/", gin.Dir(*spa, true))
+	s.Routes.StaticFS("/assets", gin.Dir(filepath.Join(*spa, "assets"), true))
 	s.Routes.NoRoute(func(c *gin.Context) {
+		// Disallow fallback for /api paths
+		if strings.HasPrefix(c.Request.URL.Path, "/api") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "API endpoint not found"})
+			return
+		}
 		// Try to serve file from SPA directory
 		filePath := filepath.Join(*spa, c.Request.URL.Path)
 		if _, err := os.Stat(filePath); err == nil {
 			c.File(filePath)
-		} else {
-			// Fallback to index.html for SPA routing
-			c.File(filepath.Join(*spa, "index.html"))
+			return
 		}
+		// Fallback to index.html for SPA routing
+		c.File(filepath.Join(*spa, "index.html"))
+
 	})
 
 	go func() {
