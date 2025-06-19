@@ -11,12 +11,37 @@ import {
 import { ref, reactive } from 'vue';
 import type { Subs } from 'src/models/Subscribe';
 import type { Sets } from 'src/models/Set';
+import type { PongMessage } from 'src/models/Pong';
 
 const pendingResponses = new Map<string, (data: Response | undefined) => void>();
-export const lastKnownValues = reactive(new Map<string, string>());
+const lastKnownValues: Record<string, string> = reactive({});
 
 export let socket: WebSocket | null = null;
 const isConnected = ref(false);
+let lastPongTime = Date.now();
+
+function pingLoop(interval: number = 5000) {
+  // Start sending ping every 5 seconds
+  setInterval(() => {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+
+    // If no pong received in last 10 seconds, close
+    if (Date.now() - lastPongTime > interval + 10000) {
+      console.warn('No pong response, closing socket...');
+      socket.close();
+      return;
+    }
+    socket.send(JSON.stringify({ type: 'ping' }));
+  }, interval);
+}
+
+function isPong(msg: PongMessage | undefined | null) {
+  if (msg?.type === 'pong') {
+    lastPongTime = Date.now();
+    return true;
+  }
+  return false;
+}
 
 export function initWebSocket(url: string, $q?: QVueGlobals) {
   const connect = () => {
@@ -25,6 +50,8 @@ export function initWebSocket(url: string, $q?: QVueGlobals) {
     socket.onopen = () => {
       console.log('WebSocket connected');
       isConnected.value = true;
+      // Start sending ping every 5 seconds
+      pingLoop(5000);
     };
     socket.onclose = () => {
       isConnected.value = false;
@@ -49,43 +76,42 @@ export function initWebSocket(url: string, $q?: QVueGlobals) {
       });
     };
     socket.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      const id = message.id;
+      if (typeof event.data === 'string') {
+        const message = JSON.parse(event.data);
 
-      if (id && pendingResponses.has(id)) {
-        pendingResponses.get(id)?.(message); // resolve the promise
-        pendingResponses.delete(id);
-        return;
-      }
+        // Handle pong
+        if (isPong(message)) return;
 
-      if (message.publish) {
-        let changed = false;
+        const id = message.id;
+        if (id && pendingResponses.has(id)) {
+          pendingResponses.get(id)?.(message); // resolve the promise
+          pendingResponses.delete(id);
+          return;
+        }
+        if (message.publish) {
+          (message.publish as Publish[]).forEach((pub) => {
+            const uuid = pub.uuid;
+            const value = pub.value ?? '';
 
-        (message.publish as Publish[]).forEach((pub) => {
-          const uuid = pub.uuid;
-          const value = pub.value ?? '';
-
-          if (uuid === undefined) {
-            return;
-          }
-
-          const oldValue = lastKnownValues.get(String(uuid));
-          if (oldValue !== value) {
-            lastKnownValues.set(uuid, value); // this is now reactive
-
-            const existing = getSubscriptionsByUuid(pub.uuid);
-            if (existing) {
-              existing.value = value;
-            } else {
-              getAllSubscriptions()?.push({ value, uuid: uuid });
+            if (uuid === undefined) {
+              return;
             }
 
-            changed = true;
-          }
-        });
+            const oldValue = lastKnownValues[uuid];
+            if (oldValue !== value) {
+              lastKnownValues[uuid] = value; // this is now reactive
+              if (pub.uuid) {
+                const existing = getSubscriptionsByUuid(pub.uuid);
 
-        if (changed) {
-          dbmData.value = buildTree(getAllSubscriptions()); // rebuild reactive tree
+                if (existing.value) {
+                  existing.value.value = value;
+                }
+              } else {
+                getAllSubscriptions().push({ value, uuid: uuid });
+              }
+              dbmData.splice(0, dbmData.length, ...buildTree(getAllSubscriptions())); // rebuild reactive tree
+            }
+          });
         }
       }
     };
