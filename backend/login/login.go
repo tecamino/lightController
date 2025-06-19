@@ -2,7 +2,7 @@ package login
 
 import (
 	"backend/dbRequest"
-	"backend/login/models"
+	"backend/models"
 	"backend/utils"
 	"database/sql"
 	"encoding/json"
