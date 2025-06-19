@@ -1,12 +1,12 @@
 <template>
   <div class="q-pa-md">
     <q-table
-      v-if="props.rows.length > 0"
+      v-if="tableRows.length > 0"
       style="height: 600px"
       flat
       bordered
       :title="props.rows[0]?.path"
-      :rows="props.rows ?? []"
+      :rows="rows"
       :columns="columns"
       row-key="path"
       virtual-scroll
@@ -17,12 +17,15 @@
 
 <script setup lang="ts">
 import type { QTableProps } from 'quasar';
-import type { Subscribe } from 'src/models/Subscribe';
+import type { Subs } from 'src/models/Subscribe';
+import { computed } from 'vue';
 
 // we generate lots of rows here
 const props = defineProps<{
-  rows: Subscribe[];
+  rows: Subs;
 }>();
+
+const tableRows = computed(() => [...props.rows]);
 
 const columns = [
   { name: 'path', label: 'Path', field: 'path', align: 'left' },

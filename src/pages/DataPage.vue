@@ -10,6 +10,7 @@ import { NotifyResponse } from 'src/composables/notify';
 import { useQuasar } from 'quasar';
 
 const $q = useQuasar();
+
 function saveDBM() {
   api
     .get('saveData')

@@ -1,14 +1,22 @@
 <template>
   <div :class="'column items-center ' + props.class">
-    <q-item-label :class="['text-bold', `text-${textColor}`]"><p v-html="title"></p></q-item-label>
+    <q-item-label v-if="!toggleHighLow" :class="['text-bold', `text-${textColor}`]"
+      ><p v-html="mainTitle"></p>
+    </q-item-label>
+    <q-item-label
+      v-else
+      @click="toggle = !toggle"
+      :class="['cursor-pointer', 'text-bold', 'clickable-text-effect', `text-${textColor}`]"
+      ><p v-html="toggle ? secondTitle : mainTitle"></p>
+    </q-item-label>
     <q-btn
       size="sm"
-      class="q-mb-sm"
+      class="q-mb-md"
       round
       color="positive"
       icon="add_circle_outline"
-      @click="addOne"
-      v-touch-repeat:300:300:300:300:50:50:50:50:20.mouse="addOne"
+      @click="reverse ? add : substract"
+      v-touch-repeat:0:300:300:300:300:50:50:50:50:20.mouse="reverse ? add : substract"
     />
     <div>
       <q-slider
@@ -29,20 +37,30 @@
       round
       color="negative"
       icon="remove_circle_outline"
-      @click="substractOne"
-      v-touch-repeat:300:300:300:300:50:50:50:50:20.mouse="substractOne"
+      @click="reverse ? substract : add"
+      v-touch-repeat:0:300:300:300:300:50:50:50:50:20.mouse="reverse ? substract : add"
     />
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 import { useQuasar } from 'quasar';
 import { updateValue } from 'src/composables/dbm/dbmTree';
+import { addOne, substractOne } from 'src/utils/number-helpers';
 
 const $q = useQuasar();
 
 const props = defineProps({
-  title: {
+  toggleHighLow: {
+    type: Boolean,
+    default: false,
+  },
+  mainTitle: {
+    type: String,
+    default: '',
+  },
+  secondTitle: {
     type: String,
     default: '',
   },
@@ -77,7 +95,7 @@ const props = defineProps({
   },
   max: {
     type: Number,
-    default: 100,
+    default: 255,
   },
   vertical: {
     type: Boolean,
@@ -105,17 +123,35 @@ const props = defineProps({
   },
 });
 
-const localValue = updateValue(props.dbmPath, $q, props.dbmPath2, props.dbmPath3, props.dbmValue3);
+const toggle = ref(false);
+const localValue = updateValue(
+  props.dbmPath,
+  $q,
+  toggle,
+  props.dbmPath2,
+  props.dbmPath3,
+  props.dbmValue3,
+);
 
-function addOne() {
-  if (localValue.value <= 255) {
-    localValue.value++;
-  }
+function add() {
+  addOne(localValue, 255);
 }
 
-function substractOne() {
-  if (localValue.value >= 0) {
-    localValue.value--;
-  }
+function substract() {
+  substractOne(localValue, 0);
 }
 </script>
+
+<style>
+.clickable-text-effect {
+  cursor: pointer;
+  color: #040303; /* Static text color */
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
+  /* Add hover effect here if you want it part of this class */
+  transition: text-shadow 0.2s ease-in-out;
+}
+
+.clickable-text-effect:hover {
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+</style>

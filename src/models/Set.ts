@@ -2,7 +2,7 @@ export type Set = {
   uuid?: string | undefined;
   path: string;
   type?: string;
-  value: number | boolean | undefined;
+  value: string | number | boolean | undefined;
   create?: boolean;
 };
 

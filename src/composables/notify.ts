@@ -16,7 +16,7 @@ export function NotifyResponse(
       icon = 'warning';
       break;
     case 'error':
-      color = 'orange';
+      color = 'red';
       icon = 'error';
       break;
   }
@@ -26,8 +26,9 @@ export function NotifyResponse(
     if (message === '') {
       return;
     }
-    color = typeof response === 'string' ? response : response?.error ? 'red' : color;
-    icon = typeof response === 'string' ? response : response?.error ? 'error' : icon;
+
+    color = typeof response === 'string' ? color : response?.error ? 'red' : color;
+    icon = typeof response === 'string' ? icon : response?.error ? 'error' : icon;
     $q?.notify({
       message: message,
       color: color,
@@ -36,4 +37,31 @@ export function NotifyResponse(
       timeout: timeout,
     });
   }
+}
+
+export function NotifyDialog(
+  $q: QVueGlobals,
+  title: string,
+  text: string,
+  okText?: string,
+  cancelText?: string,
+) {
+  return new Promise((resolve) => {
+    $q.dialog({
+      title: title,
+      message: text,
+      persistent: true,
+      ok: okText ?? 'OK',
+      cancel: cancelText ?? 'CANCEL',
+    })
+      .onOk(() => {
+        resolve(true);
+      })
+      .onCancel(() => {
+        resolve(false);
+      })
+      .onDismiss(() => {
+        resolve(false);
+      });
+  });
 }

@@ -18,7 +18,7 @@
           reverse
           v-model="light.Brightness"
           :min="0"
-          :max="100"
+          :max="255"
           :step="1"
           color="black"
           style="opacity: 0.5"
@@ -29,7 +29,7 @@
           reverse
           v-model="light.Red"
           :min="0"
-          :max="100"
+          :max="255"
           :step="1"
           label
           color="red"
@@ -41,7 +41,7 @@
           reverse
           v-model="light.Green"
           :min="0"
-          :max="100"
+          :max="255"
           :step="1"
           label
           color="green"
@@ -53,7 +53,7 @@
           reverse
           v-model="light.Blue"
           :min="0"
-          :max="100"
+          :max="255"
           :step="1"
           label
           color="blue"
@@ -65,7 +65,7 @@
           reverse
           v-model="light.White"
           :min="0"
-          :max="100"
+          :max="255"
           :step="1"
           label
           color="grey"
@@ -77,7 +77,7 @@
           reverse
           v-model="light.Amber"
           :min="0"
-          :max="100"
+          :max="255"
           :step="1"
           label
           color="amber"
@@ -89,7 +89,7 @@
           reverse
           v-model="light.Purple"
           :min="0"
-          :max="100"
+          :max="255"
           :step="1"
           label
           color="purple"

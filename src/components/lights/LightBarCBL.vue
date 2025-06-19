@@ -12,46 +12,46 @@
           />
         </div>
         <LightSlider
-          title="Dimmer"
-          :dbm-path="'LightBar:Brightness'"
+          mainTitle="Dimmer"
+          dbm-path="LightBar:Brightness"
           :opacity="0.5"
           class="q-ma-sm"
         ></LightSlider>
         <LightSlider
-          title="Strobe"
-          :dbm-path="'LightBar:Strobe'"
+          mainTitle="Strobe"
+          dbm-path="LightBar:Strobe"
           :opacity="0.5"
           class="q-ma-sm"
         ></LightSlider>
         <LightSlider
-          title="Program"
-          :dbm-path="'LightBar:Program'"
+          mainTitle="Program"
+          dbm-path="LightBar:Program"
           :opacity="0.5"
           class="q-ma-sm"
         ></LightSlider>
         <LightSlider
-          title="Program Speed"
-          :dbm-path="'LightBar:Program:Speed'"
+          mainTitle="Program Speed"
+          dbm-path="LightBar:Program:Speed"
           :opacity="0.8"
           class="q-ma-sm"
         ></LightSlider>
         <LightSlider
-          title="Red"
-          :dbm-path="'LightBar:Red'"
+          mainTitle="Red"
+          dbm-path="LightBar:Red"
           color="red"
           :opacity="0.8"
           class="q-ma-sm"
         ></LightSlider>
         <LightSlider
-          title="Green"
-          :dbm-path="'LightBar:Green'"
+          mainTitle="Green"
+          dbm-path="LightBar:Green"
           :opacity="0.8"
           color="green"
           class="q-ma-sm"
         ></LightSlider>
         <LightSlider
-          title="Blue"
-          :dbm-path="'LightBar:Blue'"
+          mainTitle="Blue"
+          dbm-path="LightBar:Blue"
           :opacity="0.8"
           color="blue"
           class="q-ma-sm"
@@ -67,12 +67,12 @@
 
 <script setup lang="ts">
 import { useQuasar } from 'quasar';
+import LightSlider from './LightSlider.vue';
 import { ref, onMounted, onUnmounted } from 'vue';
 import { subscribe, unsubscribe } from 'src/services/websocket';
 import SettingDialog from 'src/components/lights/SettingDomeLight.vue';
 import { NotifyResponse } from 'src/composables/notify';
 import { updateValue, buildTree, dbmData } from 'src/composables/dbm/dbmTree';
-import LightSlider from './LightSlider.vue';
 
 const $q = useQuasar();
 const settings = ref(false);
@@ -87,7 +87,7 @@ onMounted(() => {
   ])
     .then((response) => {
       if (response?.subscribe) {
-        dbmData.value = buildTree(response.subscribe ?? []);
+        dbmData.splice(0, dbmData.length, ...buildTree(response.subscribe));
       } else {
         NotifyResponse($q, response);
       }
@@ -111,7 +111,7 @@ onUnmounted(() => {
 function changeState() {
   if (brightness.value === 0) {
     if (state.value === 0) {
-      brightness.value = 100;
+      brightness.value = 255;
       return;
     }
     brightness.value = state.value;

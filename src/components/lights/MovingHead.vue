@@ -21,49 +21,59 @@ select
         </div>
 
         <LightSlider
-          title="Dimmer"
-          :dbm-path="'MovingHead:Brightness'"
-          :dbm-path2="'MovingHead:BrightnessFine'"
-          :dbm-path3="'MovingHead:Strobe'"
+          mainTitle="Dimmer"
+          second-title="Dimmer Fine"
+          :toggle-high-low="true"
+          dbm-path="MovingHead:Brightness"
+          dbm-path2="MovingHead:BrightnessFine"
+          dbm-path3="MovingHead:Strobe"
           :dbm-value3="255"
           :opacity="0.5"
           class="q-ma-md"
         />
         <LightSlider
-          title="Red"
-          :dbm-path="'MovingHead:Red'"
-          :dbm-path2="'MovingHead:RedFine'"
+          mainTitle="Red"
+          second-title="Red Fine"
+          :toggle-high-low="true"
+          dbm-path="MovingHead:Red"
+          dbm-path2="MovingHead:RedFine"
           :opacity="0.8"
           color="red"
           class="q-ma-md"
         />
         <LightSlider
-          title="Green"
-          :dbm-path="'MovingHead:Green'"
-          :dbm-path2="'MovingHead:GreenFine'"
+          mainTitle="Green"
+          second-title="Green Fine"
+          :toggle-high-low="true"
+          dbm-path="MovingHead:Green"
+          dbm-path2="MovingHead:GreenFine"
           :opacity="0.8"
           color="green"
           class="q-ma-md"
         />
         <LightSlider
-          title="Blue"
-          :dbm-path="'MovingHead:Blue'"
-          :dbm-path2="'MovingHead:BlueFine'"
+          mainTitle="Blue"
+          second-title="Blue Fine"
+          :toggle-high-low="true"
+          dbm-path="MovingHead:Blue"
+          dbm-path2="MovingHead:BlueFine"
           :opacity="0.8"
           color="blue"
           class="q-ma-md"
         />
         <LightSlider
-          title="White"
-          :dbm-path="'MovingHead:White'"
-          :dbm-path2="'MovingHead:WhiteFine'"
+          mainTitle="White"
+          second-title="White Fine"
+          :toggle-high-low="true"
+          dbm-path="MovingHead:White"
+          dbm-path2="MovingHead:WhiteFine"
           :opacity="0.3"
           color="grey"
           class="q-ma-md"
         />
         <LightSlider
-          title="Zoom"
-          :dbm-path="'MovingHead:Zoom'"
+          mainTitle="Zoom"
+          dbm-path="MovingHead:Zoom"
           :opacity="1"
           color="black"
           class="q-ma-md"
@@ -71,9 +81,11 @@ select
         <div>
           <DragPad
             class="q-ma-md"
-            v-model:pan="pan"
+            pan-path="MovingHead:Pan"
+            pan-path2="MovingHead:PanFine"
             v-model:reverse-pan="settings.reversePan"
-            v-model:tilt="tilt"
+            tilt-path="MovingHead:Tilt"
+            tilt-path2="MovingHead:TiltFine"
             v-model:reverse-tilt="settings.reverseTilt"
           />
         </div>
@@ -102,8 +114,6 @@ import type { Settings } from 'src/models/MovingHead';
 
 const $q = useQuasar();
 const brightness = updateBrightnessValue('MovingHead:Brightness');
-const pan = updateValue('MovingHead:Pan', true);
-const tilt = updateValue('MovingHead:Tilt', true);
 const state = updateValue('MovingHead:State');
 const settings = ref<Settings>({
   show: false,
@@ -125,7 +135,7 @@ onMounted(() => {
     .then((response) => {
       console.log(response);
       if (response?.subscribe) {
-        dbmData.value = buildTree(response.subscribe ?? []);
+        dbmData.splice(0, dbmData.length, ...buildTree(response.subscribe));
       } else {
         NotifyResponse($q, response);
       }
@@ -149,7 +159,7 @@ onUnmounted(() => {
 function changeState() {
   if (brightness.value === 0) {
     if (state.value === 0) {
-      brightness.value = 100;
+      brightness.value = 255;
       return;
     }
     brightness.value = state.value;
@@ -164,14 +174,13 @@ function updateValue(path: string, isDouble = false) {
     get() {
       const sub = getSubscriptionsByPath(path);
       const value = sub ? Number(sub.value ?? 0) : 0;
-      return isDouble ? Math.round((100 / 255) * value) : Math.round((100 / 255) * value);
+      return isDouble ? value : value;
     },
     set(val) {
-      const baseValue = Math.round((255 / 100) * val);
-      const setPaths = [{ path, value: baseValue }];
+      const setPaths = [{ path, value: val }];
 
       if (isDouble) {
-        setPaths.push({ path: `${path}Fine`, value: baseValue });
+        setPaths.push({ path: `${path}Fine`, value: val });
       }
 
       setValues(setPaths)
@@ -186,12 +195,11 @@ function updateBrightnessValue(path: string) {
     get() {
       const sub = getSubscriptionsByPath(path);
       const value = sub ? Number(sub.value ?? 0) : 0;
-      return Math.round((100 / 255) * value);
+      return value;
     },
     set(val) {
-      const baseValue = Math.round((255 / 100) * val);
-      const setPaths = [{ path, value: baseValue }];
-      setPaths.push({ path: `${path}Fine`, value: baseValue });
+      const setPaths = [{ path, value: val }];
+      setPaths.push({ path: `${path}Fine`, value: val });
       setPaths.push({ path: `MovingHead:Strobe`, value: 255 });
 
       setValues(setPaths)

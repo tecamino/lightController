@@ -10,6 +10,7 @@
           no-transition
           :default-expand-all="false"
           v-model:expanded="expanded"
+          @update:expanded="onExpandedChange"
           @lazy-load="onLazyLoad"
         >
           <template v-slot:[`default-header`]="props">
@@ -52,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import DataTable from './dataTable.vue';
 import type { TreeNode } from 'src/composables/dbm/dbmTree';
 import {
@@ -60,7 +61,6 @@ import {
   buildTree,
   getSubscriptionsByUuid,
   addChildrentoTree,
-  removeSubtreeByParentKey,
   getAllSubscriptions,
 } from 'src/composables/dbm/dbmTree';
 import { useQuasar } from 'quasar';
@@ -72,12 +72,14 @@ import { subscribe, unsubscribe, setValues } from 'src/services/websocket';
 import { onBeforeRouteLeave } from 'vue-router';
 import { api } from 'boot/axios';
 import type { Subs } from 'src/models/Subscribe';
+import { reactive } from 'vue';
 
 const $q = useQuasar();
 const expanded = ref<string[]>([]);
 const selectedNode = ref<TreeNode | null>(null);
 const ZERO_UUID = '00000000-0000-0000-0000-000000000000';
-const Subscriptions = ref<Subs>([]);
+const Subscriptions = reactive<Subs>([]);
+let lastExpanded: string[] = [];
 
 onMounted(() => {
   const payload = {
@@ -92,7 +94,7 @@ onMounted(() => {
     .post('/json_data', payload)
     .then((res) => {
       if (res.data.get) {
-        dbmData.value = buildTree(res.data.get);
+        dbmData.splice(0, dbmData.length, ...buildTree(res.data.get));
       }
     })
     .catch((err) => {
@@ -121,7 +123,6 @@ function onLazyLoad({
   fail: () => void;
 }): void {
   //first unsubsrice nodes
-
   unsubscribe([
     {
       path: '.*',
@@ -129,7 +130,7 @@ function onLazyLoad({
     },
   ])
     .then(() => {
-      Subscriptions.value = [];
+      Subscriptions.length = 0;
     })
     .catch((err) => {
       NotifyResponse($q, err, 'error');
@@ -152,9 +153,13 @@ function onLazyLoad({
           resp.subscribe.filter((sub) => sub.uuid !== ZERO_UUID).map((sub) => sub.uuid),
         );
 
-        Subscriptions.value = getAllSubscriptions().filter((sub) => toRemove.has(sub.uuid));
+        Subscriptions.splice(
+          0,
+          Subscriptions.length,
+          ...getAllSubscriptions().filter((sub) => toRemove.has(sub.uuid)),
+        );
 
-        done(dbmData.value);
+        done(dbmData);
       } else {
         done([]); // no children returned
       }
@@ -167,11 +172,12 @@ function onLazyLoad({
 
 function onValueEdit(newValue: undefined, node: TreeNode) {
   console.log(node.value, node.value === undefined);
+  if (!node.key) return;
   const sub = getSubscriptionsByUuid(node.key);
   if (sub) {
     setValues([
       {
-        path: sub.path ?? '',
+        path: sub.value?.path ?? '',
         value: newValue,
       },
     ]).catch((err) => {
@@ -180,37 +186,72 @@ function onValueEdit(newValue: undefined, node: TreeNode) {
   }
 }
 
-watch(
-  expanded,
-  (newVal, oldVal) => {
-    const collapsedKeys = oldVal.filter((key) => !newVal.includes(key));
-    collapsedKeys.forEach((key: string) => {
-      // WebSocket unsubscribe
-      unsubscribe([
+function onExpandedChange(newExpanded: readonly string[]) {
+  const collapsed = lastExpanded.filter((k) => !newExpanded.includes(k));
+  const newlyExpanded = newExpanded.filter((k) => !lastExpanded.includes(k));
+
+  if (collapsed.length) {
+    collapsed.forEach((key: string) => {
+      subscribe([
         {
           uuid: key,
-          path: '.*',
-          depth: 0,
+          path: '',
+          depth: 2,
         },
       ])
         .then((resp) => {
-          // Remove children of this node from the tree
-          removeSubtreeByParentKey(key);
-          if (resp?.unsubscribe) {
+          if (resp?.subscribe) {
+            // Optional: update your internal store too
+            addChildrentoTree(resp?.subscribe);
+
             const toRemove = new Set(
-              resp.unsubscribe.filter((sub) => sub.uuid !== ZERO_UUID).map((sub) => sub.uuid),
+              resp.subscribe.filter((sub) => sub.uuid !== ZERO_UUID).map((sub) => sub.uuid),
             );
 
-            Subscriptions.value = Subscriptions.value.filter((sub) => !toRemove.has(sub.uuid));
+            Subscriptions.splice(
+              0,
+              Subscriptions.length,
+              ...getAllSubscriptions().filter((sub) => toRemove.has(sub.uuid)),
+            );
           }
         })
         .catch((err) => {
           NotifyResponse($q, err, 'error');
         });
     });
-  },
-  { deep: false },
-);
+  } else if (newlyExpanded.length) {
+    newlyExpanded.forEach((key: string) => {
+      subscribe([
+        {
+          uuid: key,
+          path: '',
+          depth: 2,
+        },
+      ])
+        .then((resp) => {
+          if (resp?.subscribe) {
+            // Optional: update your internal store too
+            addChildrentoTree(resp?.subscribe);
+
+            const toRemove = new Set(
+              resp.subscribe.filter((sub) => sub.uuid !== ZERO_UUID).map((sub) => sub.uuid),
+            );
+
+            Subscriptions.splice(
+              0,
+              Subscriptions.length,
+              ...getAllSubscriptions().filter((sub) => toRemove.has(sub.uuid)),
+            );
+          }
+        })
+        .catch((err) => {
+          NotifyResponse($q, err, 'error');
+        });
+    });
+  }
+
+  lastExpanded = [...newExpanded];
+}
 </script>
 
 <style scoped>

@@ -3,22 +3,35 @@
     <div class="row q-ma-xs">
       <div class="column items-center q-mr-md" :style="{ height: containerSize + 'px' }">
         <div class="column justify-between items-center" :style="{ height: containerSize + 'px' }">
-          <q-item-label class="text-black text-bold q-mb-none">Tilt</q-item-label>
+          <q-item-label
+            @click="toggleTilt = !toggleTilt"
+            :class="[
+              'cursor-pointer',
+              'text-bold',
+              'clickable-text-effect',
+              'q-mb-none',
+              `text-black`,
+            ]"
+          >
+            {{ toggleTilt ? 'Tilt Fine' : 'Tilt' }}</q-item-label
+          >
           <q-btn
             :size="buttonSize"
             round
             color="positive"
             icon="add_circle_outline"
             class="q-mb-md"
-            @click="reverseTilt ? substractTiltOne : addTiltOne"
-            v-touch-repeat:300:300:300:300:50.mouse="reverseTilt ? substractTiltOne : addTiltOne"
+            @click="reverseTilt ? substractTilt : addTilt"
+            v-touch-repeat:0:300:300:300:300:50:50:50:20.mouse="
+              reverseTilt ? substractTilt : addTilt
+            "
           />
           <q-slider
             vertical
             :reverse="!props.reverseTilt"
             v-model="tilt"
             :min="0"
-            :max="100"
+            :max="255"
             :step="1"
             label
             class="col"
@@ -31,9 +44,9 @@
             round
             color="negative"
             icon="remove_circle_outline"
-            @click="reverseTilt ? addTiltOne : substractTiltOne"
-            v-touch-repeat:300:300:300:300:50:50:50:50:20.mouse="
-              reverseTilt ? addTiltOne : substractTiltOne
+            @click="reverseTilt ? addTilt : substractTilt"
+            v-touch-repeat:0:300:300:300:300:50:50:50:20.mouse="
+              reverseTilt ? addTilt : substractTilt
             "
           />
         </div>
@@ -49,7 +62,11 @@
         >
           <div class="marker" :style="markerStyle" :class="{ crosshair: dragging }"></div>
         </div>
-        <q-item-label class="q-ma-sm text-black text-bold">Pan</q-item-label>
+        <q-item-label
+          @click="togglePan = !togglePan"
+          :class="['cursor-pointer', 'text-bold', 'clickable-text-effect', 'q-mt-lg', `text-black`]"
+          >{{ togglePan ? 'Pan Fine' : 'Pan' }}</q-item-label
+        >
 
         <div class="q-gutter-sm row items-center full-width">
           <q-btn
@@ -58,9 +75,9 @@
             round
             color="negative"
             icon="remove_circle_outline"
-            @click="reversePan ? addPanOne : substractPanOne"
-            v-touch-repeat:300:300:300:300:50:50:50:50:20.mouse="
-              reversePan ? addPanOne : substractPanOne
+            @click="reversePan ? addPan : substractPan"
+            v-touch-repeat:0:300:300:300:300:50:50:50:50:20.mouse="
+              reversePan ? addPan : substractPan
             "
           />
           <q-slider
@@ -68,7 +85,7 @@
             :reverse="props.reversePan"
             v-model="pan"
             :min="0"
-            :max="100"
+            :max="255"
             :step="1"
             label
             color="black"
@@ -80,8 +97,8 @@
             round
             color="positive"
             icon="add_circle_outline"
-            @click="reversePan ? substractPanOne : addPanOne"
-            v-touch-repeat:300:300:300:300:50.mouse="reversePan ? substractPanOne : addPanOne"
+            @click="reversePan ? substractPan : addPan"
+            v-touch-repeat:0:300:300:300:300:50:50:50:20.mouse="reversePan ? substractPan : addPan"
           />
         </div>
       </div>
@@ -90,18 +107,53 @@
 </template>
 
 <script lang="ts" setup>
+import { addOne, substractOne } from 'src/utils/number-helpers';
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { updateValue } from 'src/composables/dbm/dbmTree';
+import { useQuasar } from 'quasar';
 
+const props = defineProps({
+  reversePan: {
+    type: Boolean,
+    default: false,
+  },
+  reverseTilt: {
+    type: Boolean,
+    default: false,
+  },
+  panPath: {
+    type: String,
+    default: '',
+    required: true,
+  },
+  panPath2: {
+    type: String,
+    default: '',
+  },
+  tiltPath: {
+    type: String,
+    default: '',
+    required: true,
+  },
+  tiltPath2: {
+    type: String,
+    default: '',
+  },
+});
+
+const $q = useQuasar();
+
+const togglePan = ref(false);
+const toggleTilt = ref(false);
 const pad = ref<HTMLElement | null>(null);
 const dragging = ref(false);
 const containerSize = ref(0);
 
-const pan = defineModel<number>('pan', { default: 0 });
-const tilt = defineModel<number>('tilt', { default: 0 });
-const props = defineProps<{
-  reversePan: boolean;
-  reverseTilt: boolean;
-}>();
+const pan = updateValue(props.panPath, $q, togglePan, props.panPath2);
+const tilt = updateValue(props.tiltPath, $q, toggleTilt, props.tiltPath2);
+
+const scaleFactor = computed(() => containerSize.value / 255);
+// 200px → 2, 400px → 4, etc.
 const buttonSize = computed(() => (containerSize.value <= 200 ? 'sm' : 'md'));
 
 onMounted(() => {
@@ -120,16 +172,12 @@ onMounted(() => {
   });
 });
 
-const scaleFactor = computed(() => containerSize.value / 100);
-// 200px → 2, 400px → 4, etc.
-
 const markerStyle = computed(() => {
   const scale = scaleFactor.value;
-
   return {
     position: 'absolute' as const,
-    top: `${scale * (props.reverseTilt ? tilt.value : 100 - tilt.value)}px`,
-    left: `${scale * (props.reversePan ? 100 - pan.value : pan.value)}px`,
+    top: `${scale * (props.reverseTilt ? tilt.value : 255 - tilt.value)}px`,
+    left: `${scale * (props.reversePan ? 255 - pan.value : pan.value)}px`,
     width: '12px',
     height: '12px',
     borderRadius: '50%',
@@ -191,35 +239,27 @@ function updatePosition(e: MouseEvent | Touch) {
   const newY = Math.min(Math.max(0, e.clientY - rect.top), rect.height);
 
   pan.value = props.reversePan
-    ? Math.round((1 - newX / rect.width) * 100)
-    : Math.round((newX / rect.width) * 100);
+    ? Math.round((1 - newX / rect.width) * 255)
+    : Math.round((newX / rect.width) * 255);
   tilt.value = props.reverseTilt
-    ? Math.round((newY / rect.height) * 100)
-    : Math.round(100 - (newY / rect.height) * 100);
+    ? Math.round((newY / rect.height) * 255)
+    : Math.round(255 - (newY / rect.height) * 255);
 }
 
-function addTiltOne() {
-  if (tilt.value <= 255) {
-    tilt.value++;
-  }
+function addTilt() {
+  addOne(tilt, 255);
 }
 
-function substractTiltOne() {
-  if (tilt.value >= 0) {
-    tilt.value--;
-  }
+function substractTilt() {
+  substractOne(tilt, 0);
 }
 
-function addPanOne() {
-  if (pan.value <= 255) {
-    pan.value++;
-  }
+function addPan() {
+  addOne(pan, 255);
 }
 
-function substractPanOne() {
-  if (pan.value >= 0) {
-    pan.value--;
-  }
+function substractPan() {
+  substractOne(pan, 0);
 }
 </script>
 

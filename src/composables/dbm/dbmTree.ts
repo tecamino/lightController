@@ -1,12 +1,13 @@
-import type { Subs } from 'src/models/Subscribe';
-import { ref, nextTick, computed } from 'vue';
+import type { Subs, Subscribe } from 'src/models/Subscribe';
+import type { Ref } from 'vue';
+import { nextTick, computed, reactive, ref } from 'vue';
 import { setValues } from 'src/services/websocket';
 import { NotifyResponse } from 'src/composables/notify';
 import type { QVueGlobals } from 'quasar';
 
-const Subscriptions = ref<Subs>([]);
+const Subscriptions = reactive<Record<string, Subscribe>>({});
 
-export const dbmData = ref<TreeNode[]>([]);
+export const dbmData = reactive<TreeNode[]>([]);
 
 export interface TreeNode {
   path: string | undefined;
@@ -28,9 +29,10 @@ export function buildTree(subs: Subs): TreeNode[] {
 
   const root: TreeMap = {};
 
-  Subscriptions.value = subs;
-
   for (const item of subs) {
+    if (item.path) {
+      Subscriptions[item.path] = item;
+    }
     const pathParts = item.path?.split(':') ?? [];
     let current = root;
 
@@ -54,13 +56,15 @@ export function buildTree(subs: Subs): TreeNode[] {
   }
 
   function convert(map: TreeMap): TreeNode[] {
-    return Object.entries(map).map(([path, node]) => ({
-      path,
-      key: node.uuid ?? path, // `key` is used by QTree
-      value: node.value,
-      lazy: node.lazy,
-      children: convert(node.__children),
-    }));
+    return reactive(
+      Object.entries(map).map(([path, node]) => ({
+        path,
+        key: node.uuid ?? path, // `key` is used by QTree
+        value: node.value,
+        lazy: node.lazy,
+        children: convert(node.__children),
+      })),
+    );
   }
 
   return [
@@ -74,24 +78,32 @@ export function buildTree(subs: Subs): TreeNode[] {
 }
 
 export function getTreeElementByPath(path: string) {
-  return dbmData.value.find((s) => s.path === path);
+  const sub = dbmData.find((s) => s.path === path);
+  return ref(sub);
 }
 
-export function getSubscriptionsByUuid(uid: string | undefined) {
-  return Subscriptions.value.find((s) => s.uuid === uid);
+export function getSubscriptionsByUuid(uid: string) {
+  const sub = Object.values(Subscriptions).find((sub) => sub.uuid === uid);
+  return ref(sub);
 }
 
 export function addChildrentoTree(subs: Subs) {
   const ZERO_UUID = '00000000-0000-0000-0000-000000000000';
-  const existingIds = new Set(Subscriptions.value.map((sub) => sub.uuid));
+  const existingIds = new Set(Object.values(Subscriptions).map((sub) => sub.uuid));
   const newSubs = subs
     .filter((sub) => sub.uuid !== ZERO_UUID) // Skip UUIDs with all zeroes
     .filter((sub) => !existingIds.has(sub.uuid));
 
-  Subscriptions.value.push(...newSubs);
+  for (const sub of newSubs) {
+    if (sub.path !== undefined) {
+      Subscriptions[sub.path] = sub;
+    } else {
+      console.warn('Skipping sub with undefined path', sub);
+    }
+  }
 
   void nextTick(() => {
-    dbmData.value = buildTree(Subscriptions.value);
+    dbmData.splice(0, dbmData.length, ...buildTree(Object.values(Subscriptions)));
   });
 }
 
@@ -111,39 +123,44 @@ export function removeSubtreeByParentKey(parentKey: string) {
     return false;
   }
 
-  removeChildrenAndMarkLazy(dbmData.value, parentKey);
+  removeChildrenAndMarkLazy(dbmData, parentKey);
 }
 
-export function getSubscriptionsByPath(path: string | undefined) {
-  return Subscriptions.value.find((s) => s.path === path);
+export function getSubscriptionsByPath(path: string) {
+  return ref(Subscriptions[path]);
 }
 
 export function getAllSubscriptions() {
-  return Subscriptions.value;
+  return Object.values(Subscriptions);
 }
 
 export function updateValue(
   path1: string,
   $q: QVueGlobals,
+  toggle?: Ref<boolean>,
   path2?: string,
   path3?: string,
   value3?: number,
 ) {
   return computed({
     get() {
-      const sub = getSubscriptionsByPath(path1);
-      const value = sub ? Number(sub.value ?? 0) : 0;
-      return Math.round((100 / 255) * value);
+      const sub = getSubscriptionsByPath(toggle?.value && path2 ? path2 : path1);
+      const value = sub?.value ? Number(sub.value.value ?? 0) : 0;
+      return value;
     },
     set(val) {
-      const baseValue = Math.round((255 / 100) * val);
-      const setPaths = [{ path: path1, value: baseValue }];
-      if (path2) {
+      const baseValue = val;
+      const setPaths = [];
+      if (toggle?.value && path2) {
         setPaths.push({ path: path2, value: baseValue });
+      } else {
+        setPaths.push({ path: path1, value: baseValue });
       }
+
       if (path3) {
         setPaths.push({ path: path3, value: value3 ? value3 : baseValue });
       }
+
       setValues(setPaths)
         .then((response) => NotifyResponse($q, response))
         .catch((err) => {
