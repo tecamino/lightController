@@ -47,10 +47,23 @@ func (sh *ScenesHandler) SaveScene(c *gin.Context) {
 	}
 
 	if _, err := os.Stat(path.Join(sh.dir)); err != nil {
-		os.MkdirAll(sh.dir, 666)
+		err := os.MkdirAll(sh.dir, 0755)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
 	}
 
-	f, err := os.OpenFile(path.Join(sh.dir, scene.Name+".scene"), os.O_CREATE|os.O_TRUNC|os.O_RDWR, 666)
+	f, err := os.OpenFile(path.Join(sh.dir, scene.Name+".scene"), os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0644)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	defer f.Close()
 
 	_, err = f.Write(body)
 	if err != nil {
@@ -59,7 +72,6 @@ func (sh *ScenesHandler) SaveScene(c *gin.Context) {
 		})
 		return
 	}
-	defer f.Close()
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": fmt.Sprintf("Scene '%s' saved", scene.Name),
@@ -155,6 +167,7 @@ func (sh *ScenesHandler) LoadScene(c *gin.Context) {
 	}
 
 	var scene models.Scene
+
 	err = json.Unmarshal(body, &scene)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -190,6 +203,13 @@ func (sh *ScenesHandler) LoadScene(c *gin.Context) {
 			})
 			return
 		}
+		c.JSON(http.StatusOK, scene)
+		break
 	}
-	c.JSON(http.StatusOK, scene)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Errorf("scene '%s' not found", scene.Name),
+		})
+		return
+	}
 }

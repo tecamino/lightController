@@ -31,7 +31,7 @@ export function buildTree(subs: Subs): TreeNode[] {
 
   for (const item of subs) {
     if (item.path) {
-      Subscriptions[item.path] = item;
+      addNewSubscription(item);
     }
     const pathParts = item.path?.split(':') ?? [];
     let current = root;
@@ -130,6 +130,11 @@ export function getSubscriptionsByPath(path: string) {
   return ref(Subscriptions[path]);
 }
 
+export function addNewSubscription(sub: Subscribe) {
+  if (!sub.path) return;
+  Subscriptions[sub.path] = sub;
+}
+
 export function getAllSubscriptions() {
   return Object.values(Subscriptions);
 }
@@ -145,8 +150,7 @@ export function updateValue(
   return computed({
     get() {
       const sub = getSubscriptionsByPath(toggle?.value && path2 ? path2 : path1);
-      const value = sub?.value ? Number(sub.value.value ?? 0) : 0;
-      return value;
+      return sub?.value ? Number(sub.value.value ?? 0) : 0;
     },
     set(val) {
       const baseValue = val;

@@ -104,17 +104,17 @@ select
 import { useQuasar } from 'quasar';
 import LightSlider from './LightSlider.vue';
 import { NotifyResponse } from 'src/composables/notify';
-import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { subscribe, unsubscribe, setValues } from 'src/services/websocket';
+import { onBeforeUpdate, computed, onMounted, onUnmounted, ref } from 'vue';
+import { subscribeToPath, unsubscribe, setValues } from 'src/services/websocket';
 import { LocalStorage } from 'quasar';
-import { getSubscriptionsByPath, buildTree, dbmData } from 'src/composables/dbm/dbmTree';
+import { getSubscriptionsByPath, updateValue } from 'src/composables/dbm/dbmTree';
 import DragPad from 'src/components/lights/DragPad.vue';
 import SettingDialog from './SettingMovingHead.vue';
 import type { Settings } from 'src/models/MovingHead';
 
 const $q = useQuasar();
 const brightness = updateBrightnessValue('MovingHead:Brightness');
-const state = updateValue('MovingHead:State');
+const state = updateValue('MovingHead:State', $q);
 const settings = ref<Settings>({
   show: false,
   reversePan: false,
@@ -125,24 +125,11 @@ const settings = ref<Settings>({
 onMounted(() => {
   settings.value.reversePan = LocalStorage.getItem('reversePan') ?? false;
   settings.value.reverseTilt = LocalStorage.getItem('reverseTilt') ?? false;
+  subscribeToPath($q, 'MovingHead:.*');
+});
 
-  subscribe([
-    {
-      path: 'MovingHead:.*',
-      depth: 0,
-    },
-  ])
-    .then((response) => {
-      console.log(response);
-      if (response?.subscribe) {
-        dbmData.splice(0, dbmData.length, ...buildTree(response.subscribe));
-      } else {
-        NotifyResponse($q, response);
-      }
-    })
-    .catch((err) => {
-      NotifyResponse($q, err, 'error');
-    });
+onBeforeUpdate(() => {
+  subscribeToPath($q, 'MovingHead:.*');
 });
 
 onUnmounted(() => {
@@ -157,45 +144,28 @@ onUnmounted(() => {
 });
 
 function changeState() {
+  console.log(55, brightness.value);
+  console.log(56, state.value);
   if (brightness.value === 0) {
     if (state.value === 0) {
       brightness.value = 255;
       return;
     }
     brightness.value = state.value;
+    console.log(57, brightness.value);
     return;
   }
   state.value = brightness.value;
+  console.log(58, state.value);
   brightness.value = 0;
-}
-
-function updateValue(path: string, isDouble = false) {
-  return computed({
-    get() {
-      const sub = getSubscriptionsByPath(path);
-      const value = sub ? Number(sub.value ?? 0) : 0;
-      return isDouble ? value : value;
-    },
-    set(val) {
-      const setPaths = [{ path, value: val }];
-
-      if (isDouble) {
-        setPaths.push({ path: `${path}Fine`, value: val });
-      }
-
-      setValues(setPaths)
-        .then((response) => NotifyResponse($q, response))
-        .catch((err) => console.error(`Failed to update ${path.split(':')[1]}:`, err));
-    },
-  });
 }
 
 function updateBrightnessValue(path: string) {
   return computed({
     get() {
       const sub = getSubscriptionsByPath(path);
-      const value = sub ? Number(sub.value ?? 0) : 0;
-      return value;
+      if (!sub.value) return 0;
+      return Number(sub.value.value);
     },
     set(val) {
       const setPaths = [{ path, value: val }];

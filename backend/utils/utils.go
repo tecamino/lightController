@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"io/fs"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -27,6 +28,10 @@ func OpenBrowser(url string, logger *logging.Logger) error {
 			{"open", url}, // fallback
 		}
 	default: // Linux
+		if os.Getenv("DISPLAY") == "" && os.Getenv("WAYLAND_DISPLAY") == "" && os.Getenv("XDG_SESSION_TYPE") != "wayland" {
+
+			return fmt.Errorf("os is running i headless mode do not start browser")
+		}
 		commands = [][]string{
 			{"chromium-browser", "--kiosk", url},
 			{"google-chrome", "--kiosk", url},
@@ -47,14 +52,14 @@ func OpenBrowser(url string, logger *logging.Logger) error {
 	return fmt.Errorf("could not open browser")
 }
 
-func FindAllFiles(rootDir, fileExtention string) (files []string, err error){
-	err =	filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
-		if   d.IsDir() {
+func FindAllFiles(rootDir, fileExtention string) (files []string, err error) {
+	err = filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
+		if d.IsDir() {
 			return nil
-		} else if filepath.Ext(d.Name()) == fileExtention{
+		} else if filepath.Ext(d.Name()) == fileExtention {
 			files = append(files, path)
 		}
 		return err
 	})
-	return 
+	return
 }
