@@ -48,6 +48,10 @@ func main() {
 		Debug:       *debug,
 		TerminalOut: true,
 	})
+	if err != nil {
+		logger.Error("main new logger", err.Error())
+		panic(err)
+	}
 
 	//new login manager
 	loginManager, err := login.NewLoginManager(".")
@@ -62,8 +66,20 @@ func main() {
 	// new server
 	s := server.NewServer()
 
+	//get local ip
+	origins := []string{"http://localhost:9000"}
+	origins = append(origins, "http://localhost:9500")
+
+	localIP, err := utils.GetLocalIP()
+	if err != nil {
+		logger.Error("main", fmt.Sprintf("get local ip : %s", err.Error()))
+	} else {
+		origins = append(origins, fmt.Sprintf("http://%s:9000", localIP))
+		origins = append(origins, fmt.Sprintf("http://%s:9500", localIP))
+	}
+	fmt.Println(123, origins)
 	s.Routes.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:9000"},
+		AllowOrigins:     origins,
 		AllowMethods:     []string{"POST", "GET", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type"},
 		AllowCredentials: true,
@@ -104,7 +120,6 @@ func main() {
 			logger.Error("main", fmt.Sprintf("starting browser error : %s", err.Error()))
 		}
 	}()
-	fmt.Println(3, *ip, *port)
 	// start http server
 	logger.Info("main", fmt.Sprintf("http listen on ip: %s port: %d", *ip, *port))
 	if err := s.ServeHttp(*ip, *port); err != nil {

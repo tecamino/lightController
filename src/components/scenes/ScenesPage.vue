@@ -133,9 +133,12 @@ const newScene = reactive<Scene>({
 });
 
 const scenes = ref<Scene[]>([]);
+const host = window.location.hostname;
+const port = 9500;
+const baseURL = `http://${host}:${port}`;
 
 const quasarApi = axios.create({
-  baseURL: `http://localhost:9500`,
+  baseURL: baseURL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -150,7 +153,9 @@ onMounted(() => {
         scenes.value = resp.data;
       }
     })
-    .catch((err) => NotifyResponse($q, err.response.data.error, 'error'));
+    .catch((err) => {
+      NotifyResponse($q, err.response.data.error, 'error');
+    });
 });
 
 function removeScene(name: string) {
