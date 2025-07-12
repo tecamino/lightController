@@ -4,50 +4,49 @@
       <q-item clickable v-close-popup @click="handleAction('Add')">
         <q-item-section>Add Datapoint</q-item-section>
       </q-item>
-      <q-item clickable v-close-popup @click="handleAction('Delete')">
+      <q-item
+        :class="disable ? 'text-grey-5' : ''"
+        :clickable="!disable"
+        v-close-popup
+        @click="handleAction('Delete')"
+      >
         <q-item-section>Delete Datapoint</q-item-section>
       </q-item>
     </q-list>
   </q-menu>
+  <AddDialog :dialogLabel="label" width="700px" button-ok-label="Add" ref="addDialog" />
 </template>
 
 <script setup lang="ts">
-//import { useQuasar } from 'quasar';
-//import { NotifyResponse, NotifyError } from 'src/composables/notify';
-import { contextMenuState, contextMenuRef } from 'src/composables/dbm/useContextMenu';
-//import AddDatapoint from 'src/components/dbm/AddDatapoint.vue';
-//import { send } from 'src/services/websocket';
+import AddDialog from 'src/components/dialog/AddDatapoint.vue';
+import { ref } from 'vue';
 
-//const $q = useQuasar();
+const ZERO_UUID = '00000000-0000-0000-0000-000000000000';
+const addDialog = ref();
+const datapointUuid = ref('');
+const contextMenuRef = ref();
+const label = ref('');
+const disable = ref(false);
 
 function handleAction(action: string) {
-  console.log(`Action '${action}' on node:`, contextMenuState.value);
-
-  // Add your actual logic here
   switch (action) {
     case 'Add':
-      // send({
-      //   set: [
-      //     {
-      //       uuid: contextMenuState.value?.key,
-      //       path: 'New',
-      //       type: 'BIT',
-      //       value: true,
-      //       create: true,
-      //     },
-      //   ],
-      // })
-      //   .then((response) => {
-      //     if (response?.set) {
-      //       console.log(response);
-      //     } else {
-      //       NotifyResponse($q, response);
-      //     }
-      //   })
-      //   .catch((err) => {
-      //     NotifyError($q, err);
-      //   });
-      console.log(4);
+      label.value = 'Add New Datapoint';
+      addDialog.value?.open(datapointUuid.value);
+      break;
+    case 'Delete':
+      label.value = 'Remove Datapoint';
+      addDialog.value?.open(datapointUuid.value);
+      break;
   }
 }
+
+const open = (event: MouseEvent, uuid: string) => {
+  if (uuid === ZERO_UUID) disable.value = true;
+  event.preventDefault();
+  datapointUuid.value = uuid;
+  contextMenuRef.value?.show(event);
+};
+
+defineExpose({ open });
 </script>

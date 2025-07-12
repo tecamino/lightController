@@ -107,10 +107,11 @@ import { NotifyResponse } from 'src/composables/notify';
 import { onBeforeUpdate, computed, onMounted, onUnmounted, ref } from 'vue';
 import { subscribeToPath, unsubscribe, setValues } from 'src/services/websocket';
 import { LocalStorage } from 'quasar';
-import { getSubscriptionsByPath, updateValue } from 'src/composables/dbm/dbmTree';
+import { updateValue } from 'src/composables/dbm/dbmTree';
 import DragPad from 'src/components/lights/DragPad.vue';
 import SettingDialog from './SettingMovingHead.vue';
 import type { Settings } from 'src/models/MovingHead';
+import { findSubscriptionByPath, removeAllSubscriptions } from 'src/models/Subscriptions';
 
 const $q = useQuasar();
 const brightness = updateBrightnessValue('MovingHead:Brightness');
@@ -141,31 +142,29 @@ onUnmounted(() => {
   ]).catch((err) => {
     NotifyResponse($q, err, 'error');
   });
+  removeAllSubscriptions();
 });
 
 function changeState() {
-  console.log(55, brightness.value);
-  console.log(56, state.value);
   if (brightness.value === 0) {
     if (state.value === 0) {
       brightness.value = 255;
       return;
     }
     brightness.value = state.value;
-    console.log(57, brightness.value);
     return;
   }
   state.value = brightness.value;
-  console.log(58, state.value);
   brightness.value = 0;
 }
 
 function updateBrightnessValue(path: string) {
   return computed({
     get() {
-      const sub = getSubscriptionsByPath(path);
+      const sub = findSubscriptionByPath(path);
+      if (!sub) return 0;
       if (!sub.value) return 0;
-      return Number(sub.value.value);
+      return Number(sub.value);
     },
     set(val) {
       const setPaths = [{ path, value: val }];

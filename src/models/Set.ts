@@ -1,6 +1,6 @@
 export type Set = {
   uuid?: string | undefined;
-  path: string;
+  path?: string;
   type?: string;
   value: string | number | boolean | undefined;
   create?: boolean;

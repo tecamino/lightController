@@ -14,6 +14,7 @@ node_modules
 /src-cordova/www
 
 # Capacitor related directories and files
+/src-capacitor
 /src-capacitor/www
 /src-capacitor/node_modules
 
@@ -38,3 +39,6 @@ yarn-error.log*
 
 # local .log files
 *.log
+
+# golang quasar websever executable
+backend/server-linux-arm64

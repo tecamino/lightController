@@ -1,19 +1,13 @@
 import type { Response } from 'src/models/Response';
-import type { Publish } from 'src/models/Publish';
+import { publishToSubscriptions } from 'src/models/Publish';
 import type { Request } from 'src/models/Request';
 import type { QVueGlobals } from 'quasar';
-import {
-  buildTree,
-  dbmData,
-  getSubscriptionsByPath,
-  getAllSubscriptions,
-} from 'src/composables/dbm/dbmTree';
 import { ref } from 'vue';
-import type { Subs } from 'src/models/Subscribe';
+import { NotifyResponse } from 'src/composables/notify';
+import { type Subs } from 'src/models/Subscribe';
 import type { Sets } from 'src/models/Set';
 import type { PongMessage } from 'src/models/Pong';
-import { NotifyResponse } from 'src/composables/notify';
-
+import { addSubscriptions } from 'src/models/Subscriptions';
 const pendingResponses = new Map<string, (data: Response | undefined) => void>();
 //const lastKnownValues: Record<string, string> = reactive({});
 
@@ -91,13 +85,7 @@ export function initWebSocket(url: string, $q?: QVueGlobals) {
         }
 
         if (message.publish) {
-          (message.publish as Publish[]).forEach((pub) => {
-            const sub = getSubscriptionsByPath(pub.path);
-            if (sub.value && pub.value) {
-              sub.value.value = pub.value;
-            }
-            dbmData.splice(0, dbmData.length, ...buildTree(getAllSubscriptions())); // rebuild reactive tree
-          });
+          publishToSubscriptions(message.publish);
         }
       }
     };
@@ -139,10 +127,6 @@ function waitForSocketConnection(): Promise<void> {
   });
 }
 
-export function subscribe(data: Subs): Promise<Response | undefined> {
-  return send({ subscribe: data });
-}
-
 export function subscribeToPath(q: QVueGlobals, path: string) {
   subscribe([
     {
@@ -151,9 +135,8 @@ export function subscribeToPath(q: QVueGlobals, path: string) {
     },
   ])
     .then((response) => {
-      console.log(response);
       if (response?.subscribe) {
-        dbmData.splice(0, dbmData.length, ...buildTree(response.subscribe));
+        addSubscriptions(response.subscribe);
       } else {
         NotifyResponse(q, response);
       }
@@ -161,6 +144,10 @@ export function subscribeToPath(q: QVueGlobals, path: string) {
     .catch((err) => {
       NotifyResponse(q, err, 'error');
     });
+}
+
+export function subscribe(data: Subs): Promise<Response | undefined> {
+  return send({ subscribe: data });
 }
 
 export function unsubscribe(data: Subs): Promise<Response | undefined> {

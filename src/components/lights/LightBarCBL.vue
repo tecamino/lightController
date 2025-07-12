@@ -69,43 +69,30 @@
 import { useQuasar } from 'quasar';
 import LightSlider from './LightSlider.vue';
 import { ref, onMounted, onUnmounted } from 'vue';
-import { subscribe, unsubscribe } from 'src/services/websocket';
+import { unsubscribe, subscribeToPath } from 'src/services/websocket';
 import SettingDialog from 'src/components/lights/SettingDomeLight.vue';
 import { NotifyResponse } from 'src/composables/notify';
-import { updateValue, buildTree, dbmData } from 'src/composables/dbm/dbmTree';
+import { updateValue } from 'src/composables/dbm/dbmTree';
+import { removeAllSubscriptions } from 'src/models/Subscriptions';
 
 const $q = useQuasar();
 const settings = ref(false);
 const brightness = updateValue('LightBar:Brightness', $q);
 const state = updateValue('LightBar:State', $q);
 onMounted(() => {
-  subscribe([
-    {
-      path: 'LightBar:.*',
-      depth: 0,
-    },
-  ])
-    .then((response) => {
-      if (response?.subscribe) {
-        dbmData.splice(0, dbmData.length, ...buildTree(response.subscribe));
-      } else {
-        NotifyResponse($q, response);
-      }
-    })
-    .catch((err) => {
-      NotifyResponse($q, err, 'error');
-    });
+  subscribeToPath($q, 'LightBar:.*');
 });
 
 onUnmounted(() => {
   unsubscribe([
     {
-      path: '.*',
+      path: 'LightBar',
       depth: 0,
     },
   ]).catch((err) => {
     NotifyResponse($q, err, 'error');
   });
+  removeAllSubscriptions();
 });
 
 function changeState() {
