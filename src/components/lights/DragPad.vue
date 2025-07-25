@@ -109,8 +109,8 @@
 <script lang="ts" setup>
 import { addOne, substractOne } from 'src/utils/number-helpers';
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { updateValue } from 'src/composables/dbm/dbmTree';
-import { useQuasar } from 'quasar';
+import { updateValue } from 'src/vueLib/dbm/dbmTree';
+import { useNotify } from 'src/vueLib/general/useNotify';
 
 const props = defineProps({
   reversePan: {
@@ -141,16 +141,15 @@ const props = defineProps({
   },
 });
 
-const $q = useQuasar();
-
+const { NotifyResponse } = useNotify();
 const togglePan = ref(false);
 const toggleTilt = ref(false);
 const pad = ref<HTMLElement | null>(null);
 const dragging = ref(false);
 const containerSize = ref(0);
 
-const pan = updateValue(props.panPath, $q, togglePan, props.panPath2);
-const tilt = updateValue(props.tiltPath, $q, toggleTilt, props.tiltPath2);
+const pan = updateValue(NotifyResponse, props.panPath, togglePan, props.panPath2);
+const tilt = updateValue(NotifyResponse, props.tiltPath, toggleTilt, props.tiltPath2);
 
 const scaleFactor = computed(() => containerSize.value / 255);
 // 200px → 2, 400px → 4, etc.
@@ -202,7 +201,7 @@ function stopDrag() {
 }
 
 function startTouch(e: TouchEvent) {
-  e.preventDefault(); // ✅ block scroll
+  e.preventDefault();
   const touch = e.touches[0];
   if (!touch) return;
   dragging.value = true;

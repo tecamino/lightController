@@ -2,6 +2,7 @@ package main
 
 import (
 	"backend/login"
+	"backend/models"
 	secenes "backend/scenes"
 	"backend/server"
 	"backend/utils"
@@ -20,6 +21,11 @@ import (
 )
 
 func main() {
+
+	var allowOrigins models.StringSlice
+
+	flag.Var(&allowOrigins, "allowOrigin", "Allowed origin (can repeat this flag)")
+
 	spa := flag.String("spa", "./dist/spa", "quasar spa files")
 	workingDir := flag.String("workingDirectory", ".", "quasar spa files")
 	ip := flag.String("ip", "0.0.0.0", "server listening ip")
@@ -32,7 +38,7 @@ func main() {
 		fmt.Println(1, *workingDir)
 		os.Chdir(*workingDir)
 	}
-	fmt.Println(1.1, *workingDir)
+
 	wd, err := os.Getwd()
 	if err != nil {
 		log.Fatalf("Could not get working directory: %v", err)
@@ -67,19 +73,17 @@ func main() {
 	s := server.NewServer()
 
 	//get local ip
-	origins := []string{"http://localhost:9000"}
-	origins = append(origins, "http://localhost:9500")
+	allowOrigins = append(allowOrigins, "http://localhost:9000", "http://localhost:9500")
 
 	localIP, err := utils.GetLocalIP()
 	if err != nil {
 		logger.Error("main", fmt.Sprintf("get local ip : %s", err.Error()))
 	} else {
-		origins = append(origins, fmt.Sprintf("http://%s:9000", localIP))
-		origins = append(origins, fmt.Sprintf("http://%s:9500", localIP))
+		allowOrigins = append(allowOrigins, fmt.Sprintf("http://%s:9000", localIP), fmt.Sprintf("http://%s:9500", localIP))
 	}
-	fmt.Println(123, origins)
+
 	s.Routes.Use(cors.New(cors.Config{
-		AllowOrigins:     origins,
+		AllowOrigins:     allowOrigins,
 		AllowMethods:     []string{"POST", "GET", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type"},
 		AllowCredentials: true,

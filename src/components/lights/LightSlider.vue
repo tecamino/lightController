@@ -45,11 +45,9 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useQuasar } from 'quasar';
-import { updateValue } from 'src/composables/dbm/dbmTree';
+import { updateValue } from 'src/vueLib/dbm/dbmTree';
 import { addOne, substractOne } from 'src/utils/number-helpers';
-
-const $q = useQuasar();
+import { useNotify } from 'src/vueLib/general/useNotify';
 
 const props = defineProps({
   toggleHighLow: {
@@ -123,10 +121,11 @@ const props = defineProps({
   },
 });
 
+const { NotifyResponse } = useNotify();
 const toggle = ref(false);
 const localValue = updateValue(
+  NotifyResponse,
   props.dbmPath,
-  $q,
   toggle,
   props.dbmPath2,
   props.dbmPath3,

@@ -1,42 +1,16 @@
-import type { Response } from 'src/models/Response';
-import { publishToSubscriptions } from 'src/models/Publish';
-import type { Request } from 'src/models/Request';
+import type { Response } from '../models/Response';
+import { publishToSubscriptions } from '../models/Publish';
+import type { Request } from '../models/Request';
 import type { QVueGlobals } from 'quasar';
 import { ref } from 'vue';
-import { NotifyResponse } from 'src/composables/notify';
-import { type Subs } from 'src/models/Subscribe';
-import type { Sets } from 'src/models/Set';
-import type { PongMessage } from 'src/models/Pong';
-import { addSubscriptions } from 'src/models/Subscriptions';
+import { type Subs } from '../models/Subscribe';
+import type { Sets } from '../models/Set';
+import { addRawSubscriptions } from '../models/Subscriptions';
 const pendingResponses = new Map<string, (data: Response | undefined) => void>();
-//const lastKnownValues: Record<string, string> = reactive({});
 
 export let socket: WebSocket | null = null;
+
 const isConnected = ref(false);
-let lastPongTime = Date.now();
-
-function pingLoop(interval: number = 5000) {
-  // Start sending ping every 5 seconds
-  setInterval(() => {
-    if (!socket || socket.readyState !== WebSocket.OPEN) return;
-
-    // If no pong received in last 10 seconds, close
-    if (Date.now() - lastPongTime > interval + 10000) {
-      console.warn('No pong response, closing socket...');
-      socket.close();
-      return;
-    }
-    socket.send(JSON.stringify({ type: 'ping' }));
-  }, interval);
-}
-
-function isPong(msg: PongMessage | undefined | null) {
-  if (msg?.type === 'pong') {
-    lastPongTime = Date.now();
-    return true;
-  }
-  return false;
-}
 
 export function initWebSocket(url: string, $q?: QVueGlobals) {
   const connect = () => {
@@ -45,9 +19,8 @@ export function initWebSocket(url: string, $q?: QVueGlobals) {
     socket.onopen = () => {
       console.log('WebSocket connected');
       isConnected.value = true;
-      // Start sending ping every 5 seconds
-      pingLoop(5000);
     };
+
     socket.onclose = () => {
       isConnected.value = false;
       console.log('WebSocket disconnected');
@@ -73,9 +46,6 @@ export function initWebSocket(url: string, $q?: QVueGlobals) {
     socket.onmessage = (event) => {
       if (typeof event.data === 'string') {
         const message = JSON.parse(event.data);
-
-        // Handle pong
-        if (isPong(message)) return;
 
         const id = message.id;
         if (id && pendingResponses.has(id)) {
@@ -127,7 +97,14 @@ function waitForSocketConnection(): Promise<void> {
   });
 }
 
-export function subscribeToPath(q: QVueGlobals, path: string) {
+export function subscribeToPath(
+  NotifyResponse: (
+    resp: Response | string | undefined,
+    type?: 'warning' | 'error',
+    timeout?: 5000,
+  ) => void,
+  path: string,
+) {
   subscribe([
     {
       path: path,
@@ -136,13 +113,13 @@ export function subscribeToPath(q: QVueGlobals, path: string) {
   ])
     .then((response) => {
       if (response?.subscribe) {
-        addSubscriptions(response.subscribe);
+        addRawSubscriptions(response.subscribe);
       } else {
-        NotifyResponse(q, response);
+        NotifyResponse(response);
       }
     })
     .catch((err) => {
-      NotifyResponse(q, err, 'error');
+      NotifyResponse(err, 'error');
     });
 }
 

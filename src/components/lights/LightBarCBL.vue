@@ -66,21 +66,21 @@
 </template>
 
 <script setup lang="ts">
-import { useQuasar } from 'quasar';
 import LightSlider from './LightSlider.vue';
 import { ref, onMounted, onUnmounted } from 'vue';
-import { unsubscribe, subscribeToPath } from 'src/services/websocket';
+import { unsubscribe, subscribeToPath } from 'src/vueLib/services/websocket';
 import SettingDialog from 'src/components/lights/SettingDomeLight.vue';
-import { NotifyResponse } from 'src/composables/notify';
-import { updateValue } from 'src/composables/dbm/dbmTree';
-import { removeAllSubscriptions } from 'src/models/Subscriptions';
+import { useNotify } from 'src/vueLib/general/useNotify';
+import { updateValue } from 'src/vueLib/dbm/dbmTree';
+import { removeAllSubscriptions } from 'src/vueLib/models/Subscriptions';
+import { catchError } from 'src/vueLib/models/error';
 
-const $q = useQuasar();
+const { NotifyResponse } = useNotify();
 const settings = ref(false);
-const brightness = updateValue('LightBar:Brightness', $q);
-const state = updateValue('LightBar:State', $q);
+const brightness = updateValue(NotifyResponse, 'LightBar:Brightness');
+const state = updateValue(NotifyResponse, 'LightBar:State');
 onMounted(() => {
-  subscribeToPath($q, 'LightBar:.*');
+  subscribeToPath(NotifyResponse, 'LightBar:.*');
 });
 
 onUnmounted(() => {
@@ -90,7 +90,7 @@ onUnmounted(() => {
       depth: 0,
     },
   ]).catch((err) => {
-    NotifyResponse($q, err, 'error');
+    NotifyResponse(catchError(err), 'error');
   });
   removeAllSubscriptions();
 });

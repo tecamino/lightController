@@ -7,7 +7,7 @@ type Get = {
   path?: string;
   type?: string;
   rights?: string;
-  value?: undefined;
+  value?: string | number | boolean | null;
   query?: Query;
   hasChild?: boolean;
 };

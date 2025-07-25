@@ -1,4 +1,4 @@
-import type { Value } from './Value';
+import type { Value } from '../vueLib/models/Value';
 
 export interface Scene {
   name: string;

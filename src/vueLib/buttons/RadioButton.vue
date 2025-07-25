@@ -1,7 +1,7 @@
 <template>
   <q-btn style="border-radius: 8px" no-caps
     ><q-radio v-model="opt" :val="props.text"></q-radio>
-    <div class="column items-start q-mx-md">
+    <div class="column items-start q-mx-sm">
       <div class="text-body1 text-black">{{ props.text }}</div>
       <div class="text-caption text-grey">{{ props.hint }}</div>
     </div>

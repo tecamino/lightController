@@ -1,13 +1,14 @@
 <template>
   <!-- new edit scene dialog-->
-  <q-dialog v-model="showDialog" persistent>
-    <q-card style="min-width: 350px">
+  <DialogFrame ref="sceneDialog" width="350px">
+    <q-card>
       <q-card-section>
         <div class="text-primary text-h6">{{ dialogLabel }}</div>
       </q-card-section>
 
       <q-card-section class="q-pt-none">
         <q-input
+          :readonly="dialog === 'load'"
           class="q-mb-md"
           dense
           v-model="newScene.name"
@@ -17,6 +18,7 @@
           @keyup.enter="saveScene"
         />
         <q-input
+          :readonly="dialog === 'load'"
           dense
           v-model="newScene.description"
           placeholder="Description"
@@ -32,11 +34,10 @@
       </q-card-section>
 
       <q-card-actions align="right" class="text-primary">
-        <q-btn flat label="Cancel" v-close-popup />
-        <q-btn flat :label="dialogLabel" @click="saveScene()" />
+        <q-btn flat :label="dialogLabel" v-close-popup @click="saveScene()" />
       </q-card-actions>
     </q-card>
-  </q-dialog>
+  </DialogFrame>
   <Dialog
     dialogLabel="Duplicate Scene"
     :text="`Scene '${newScene.name}' exists already`"
@@ -110,18 +111,19 @@
 </template>
 
 <script setup lang="ts">
-import { NotifyDialog } from 'src/composables/notify';
 import { onMounted, reactive, ref } from 'vue';
-import { useQuasar } from 'quasar';
 import type { Scene } from 'src/models/Scene';
-import type { Set } from 'src/models/Set';
+import type { Set } from 'src/vueLib/models/Set';
 import axios from 'axios';
-import { api } from 'boot/axios';
-import { NotifyResponse } from 'src/composables/notify';
+import { api } from 'src/boot/axios';
+import { useNotify } from 'src/vueLib/general/useNotify';
 import Dialog from 'src/components/dialog/OkDialog.vue';
-import { setValues } from 'src/services/websocket';
-const $q = useQuasar();
-const showDialog = ref(false);
+import { setValues } from 'src/vueLib/services/websocket';
+import DialogFrame from 'src/vueLib/dialog/DialogFrame.vue';
+import { catchError } from 'src/vueLib/models/error';
+
+const { NotifyResponse, NotifyDialog } = useNotify();
+const sceneDialog = ref();
 const dialog = ref('');
 const existsAlready = ref(false);
 const editIndex = ref(-1);
@@ -154,13 +156,13 @@ onMounted(() => {
       }
     })
     .catch((err) => {
-      NotifyResponse($q, err.response.data.error, 'error');
+      NotifyResponse(catchError(err), 'error');
     });
 });
 
 function removeScene(name: string) {
   dialog.value = '';
-  NotifyDialog($q, 'Delete', 'Do you want to delete scene: ' + name, 'YES', 'NO')
+  NotifyDialog('Delete', 'Do you want to delete scene: ' + name, 'YES', 'NO')
     .then((res) => {
       if (res) {
         scenes.value = scenes.value.filter((s) => s.name !== name);
@@ -171,15 +173,15 @@ function removeScene(name: string) {
           })
           .then((res) => {
             if (res.data) {
-              NotifyResponse($q, res.data, 'warning');
+              NotifyResponse(res.data, 'warning');
             }
           })
           .catch((err) => {
-            NotifyResponse($q, err.response.data.error, 'error');
+            NotifyResponse(catchError(err), 'error');
           });
       }
     })
-    .catch((err) => NotifyResponse($q, err.resp, 'warning'));
+    .catch((err) => NotifyResponse(catchError(err), 'warning'));
 }
 
 function openDialog(dialogType: string, scene?: Scene, index?: number) {
@@ -190,7 +192,6 @@ function openDialog(dialogType: string, scene?: Scene, index?: number) {
       newScene.name = '';
       newScene.movingHead = true;
       newScene.lightBar = true;
-      showDialog.value = true;
       break;
     case 'edit':
       if (!scene) return;
@@ -199,7 +200,6 @@ function openDialog(dialogType: string, scene?: Scene, index?: number) {
       dialogLabel.value = 'Update Scene';
       editIndex.value = index;
       Object.assign(newScene, JSON.parse(JSON.stringify(scene)));
-      showDialog.value = true;
       break;
     case 'load':
       if (!scene) return;
@@ -210,15 +210,12 @@ function openDialog(dialogType: string, scene?: Scene, index?: number) {
         .then((res) => {
           if (res.data) {
             Object.assign(newScene, JSON.parse(JSON.stringify(res.data)));
-            showDialog.value = true;
           }
         })
-        .catch((err) => NotifyResponse($q, err.response.data.error, 'error'));
-      break;
-    default:
-      showDialog.value = false;
+        .catch((err) => NotifyResponse(catchError(err), 'error'));
       break;
   }
+  sceneDialog.value.open();
 }
 
 const saveScene = async () => {
@@ -258,7 +255,7 @@ const saveScene = async () => {
           const res = await api.post('/json_data', { get: sendValues });
           newScene.values = res.data.get;
         } catch (err) {
-          NotifyResponse($q, err as Error, 'error');
+          NotifyResponse(err as Error, 'error');
         }
       } else {
         newScene.values = [];
@@ -273,14 +270,15 @@ const saveScene = async () => {
         .post('/api/saveScene', JSON.stringify(newScene))
         .then((res) => {
           if (res.data) {
-            NotifyResponse($q, res.data);
+            NotifyResponse(res.data);
           }
         })
         .catch((err) => {
-          NotifyResponse($q, err.response.data.error, 'error');
+          NotifyResponse(catchError(err), 'error');
         });
       scenes.value = [...scenes.value];
       break;
+
     case 'edit':
       if (exists) {
         existsAlready.value = true;
@@ -306,7 +304,7 @@ const saveScene = async () => {
           const res = await api.post('/json_data', { get: sendValues });
           newScene.values = res.data.get;
         } catch (err) {
-          NotifyResponse($q, err as Error, 'error');
+          NotifyResponse(err as Error, 'error');
         }
       } else {
         newScene.values = [];
@@ -319,43 +317,41 @@ const saveScene = async () => {
         .post('/api/saveScene', JSON.stringify(newScene))
         .then((res) => {
           if (res.data) {
-            NotifyResponse($q, res.data);
+            NotifyResponse(res.data);
           }
         })
         .catch((err) => {
-          NotifyResponse($q, err.response.data.error, 'error');
+          NotifyResponse(catchError(err), 'error');
         });
       scenes.value = [...scenes.value];
       break;
+
     case 'load':
       {
         const setPaths = <Set[]>[];
 
-        if (newScene.movingHead) {
-          newScene.values?.forEach((element) => {
-            if (element.path && element.path.includes('MovingHead')) {
-              setPaths.push({ path: element.path, value: element.value });
-            }
-          });
-        }
+        newScene.values?.forEach((element) => {
+          if (!element.path) return;
 
-        if (newScene.lightBar) {
-          newScene.values?.forEach((element) => {
-            if (element.path && element.path.includes('LightBar')) {
-              setPaths.push({ path: element.path, value: element.value });
-            }
-          });
-        }
+          if (newScene.movingHead && element.path.includes('MovingHead'))
+            setPaths.push({ uuid: element.uuid, path: element.path, value: element.value });
+
+          if (newScene.lightBar && element.path.includes('LightBar'))
+            setPaths.push({ uuid: element.uuid, path: element.path, value: element.value });
+        });
+
         setValues(setPaths)
           .then((response) => {
-            NotifyResponse($q, response);
+            NotifyResponse(response);
           })
-          .catch((err) => console.error(`Failed to load scene ${newScene.name}`, err));
+          .catch((err) => {
+            NotifyResponse(`Failed to load scene ${newScene.name}`, 'warning');
+            NotifyResponse(catchError(err), 'error');
+          });
       }
       break;
   }
 
   dialog.value = '';
-  showDialog.value = false;
 };
 </script>

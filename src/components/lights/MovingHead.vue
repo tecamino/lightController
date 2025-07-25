@@ -101,21 +101,21 @@ select
 </template>
 
 <script setup lang="ts">
-import { useQuasar } from 'quasar';
 import LightSlider from './LightSlider.vue';
-import { NotifyResponse } from 'src/composables/notify';
+import { useNotify } from 'src/vueLib/general/useNotify';
 import { onBeforeUpdate, computed, onMounted, onUnmounted, ref } from 'vue';
-import { subscribeToPath, unsubscribe, setValues } from 'src/services/websocket';
+import { subscribeToPath, unsubscribe, setValues } from 'src/vueLib/services/websocket';
 import { LocalStorage } from 'quasar';
-import { updateValue } from 'src/composables/dbm/dbmTree';
+import { updateValue } from 'src/vueLib/dbm/dbmTree';
 import DragPad from 'src/components/lights/DragPad.vue';
 import SettingDialog from './SettingMovingHead.vue';
 import type { Settings } from 'src/models/MovingHead';
-import { findSubscriptionByPath, removeAllSubscriptions } from 'src/models/Subscriptions';
+import { findSubscriptionByPath, removeAllSubscriptions } from 'src/vueLib/models/Subscriptions';
+import { catchError } from 'src/vueLib/models/error';
 
-const $q = useQuasar();
+const { NotifyResponse } = useNotify();
 const brightness = updateBrightnessValue('MovingHead:Brightness');
-const state = updateValue('MovingHead:State', $q);
+const state = updateValue(NotifyResponse, 'MovingHead:State');
 const settings = ref<Settings>({
   show: false,
   reversePan: false,
@@ -126,11 +126,11 @@ const settings = ref<Settings>({
 onMounted(() => {
   settings.value.reversePan = LocalStorage.getItem('reversePan') ?? false;
   settings.value.reverseTilt = LocalStorage.getItem('reverseTilt') ?? false;
-  subscribeToPath($q, 'MovingHead:.*');
+  subscribeToPath(NotifyResponse, 'MovingHead:.*');
 });
 
 onBeforeUpdate(() => {
-  subscribeToPath($q, 'MovingHead:.*');
+  subscribeToPath(NotifyResponse, 'MovingHead:.*');
 });
 
 onUnmounted(() => {
@@ -140,7 +140,7 @@ onUnmounted(() => {
       depth: 0,
     },
   ]).catch((err) => {
-    NotifyResponse($q, err, 'error');
+    NotifyResponse(catchError(err), 'error');
   });
   removeAllSubscriptions();
 });
@@ -172,7 +172,7 @@ function updateBrightnessValue(path: string) {
       setPaths.push({ path: `MovingHead:Strobe`, value: 255 });
 
       setValues(setPaths)
-        .then((response) => NotifyResponse($q, response))
+        .then((response) => NotifyResponse(response))
         .catch((err) => console.error(`Failed to update ${path.split(':')[1]}:`, err));
     },
   });

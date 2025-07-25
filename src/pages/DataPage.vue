@@ -4,17 +4,17 @@
 </template>
 
 <script setup lang="ts">
-import DBMTree from 'src/components/dbm/DBMTree.vue';
+import DBMTree from 'src/vueLib/dbm/DBMTree.vue';
 import { api } from 'src/boot/axios';
-import { NotifyResponse } from 'src/composables/notify';
-import { useQuasar } from 'quasar';
+import { useNotify } from 'src/vueLib/general/useNotify';
+import { catchError } from 'src/vueLib/models/error';
 
-const $q = useQuasar();
+const { NotifyResponse } = useNotify();
 
 function saveDBM() {
   api
     .get('saveData')
-    .then((resp) => NotifyResponse($q, resp.data))
-    .catch((err) => NotifyResponse($q, err));
+    .then((resp) => NotifyResponse(resp.data))
+    .catch((err) => NotifyResponse(catchError(err), 'error'));
 }
 </script>

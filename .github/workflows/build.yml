@@ -2,7 +2,7 @@ name: Build Quasar SPA and Go Backend for lightController
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
 
 jobs:
@@ -36,7 +36,7 @@ jobs:
 
       - name: Build Quasar SPA
         run: quasar build
-          
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -57,9 +57,9 @@ jobs:
         working-directory: ./backend
         run: |
           if [ "${{ matrix.goos }}" == "windows" ]; then
-            GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o ../server-${{ matrix.goos }}-${{ matrix.goarch }}.exe main.go
+            GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -trimpath -o ../server-${{ matrix.goos }}-${{ matrix.goarch }}.exe main.go
           else
-            GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o ../server-${{ matrix.goos }}-${{ matrix.goarch }} main.go
+            GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -trimpath -o ../server-${{ matrix.goos }}-${{ matrix.goarch }} main.go
           fi
 
       - name: Upload build artifacts

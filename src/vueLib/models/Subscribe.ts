@@ -1,12 +1,14 @@
 import { ref } from 'vue';
 import type { Ref } from 'vue';
+import type { Driver } from './Drivers';
+import type { Set } from './Set';
 
 export type Subscribe = {
   uuid?: string;
   path?: string;
   depth?: number;
   type?: string;
-  drivers?: object | undefined;
+  drivers?: Record<string, Driver>;
   value?: Ref<string | number | boolean | null | undefined>;
   hasChild?: boolean;
 };
@@ -18,20 +20,26 @@ export type RawSubscribe = {
   path?: string;
   depth?: number;
   value?: string | number | boolean | null;
+  rights?: string;
   hasChild?: boolean;
 };
 
 export type RawSubs = RawSubscribe[];
 
-export function convertToSubscribe(raw: RawSubscribe): Subscribe {
+export function convertToSubscribe(raw: RawSubscribe | Set): Subscribe {
   return {
     ...raw,
+    uuid: raw.uuid ?? '',
     value: ref(raw.value ?? null),
   };
 }
 
 export function convertToSubscribes(rawList: RawSubs): Subs {
-  const subs = rawList.map(convertToSubscribe);
+  const subs = rawList.map(convertToSubscribe).sort((a, b) => {
+    const aPath = a.path ?? '';
+    const bPath = b.path ?? '';
+    return aPath.localeCompare(bPath);
+  });
   return subs as Subs;
 }
 

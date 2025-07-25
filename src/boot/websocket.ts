@@ -1,6 +1,6 @@
 import { boot } from 'quasar/wrappers';
 import type { QVueGlobals } from 'quasar';
-import { initWebSocket } from 'src/services/websocket';
+import { initWebSocket } from '../vueLib/services/websocket';
 
 export default boot(({ app }) => {
   const $q = app.config.globalProperties.$q as QVueGlobals;

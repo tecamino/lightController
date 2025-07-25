@@ -105,14 +105,14 @@
 </template>
 
 <script setup lang="ts">
-import { useQuasar } from 'quasar';
 import { watch, reactive, ref } from 'vue';
 import type { Light } from 'src/models/Light';
-import { setValues } from 'src/services/websocket';
+import { setValues } from 'src/vueLib/services/websocket';
 import SettingDialog from 'src/components/lights/SettingDomeLight.vue';
-import { NotifyResponse } from 'src/composables/notify';
+import { useNotify } from 'src/vueLib/general/useNotify';
+import { catchError } from 'src/vueLib/models/error';
 
-const $q = useQuasar();
+const { NotifyResponse } = useNotify();
 const settings = ref(false);
 
 const light = reactive<Light>({
@@ -154,10 +154,10 @@ watch(light, (newVal: Light) => {
     },
   ])
     .then((response) => {
-      NotifyResponse($q, response);
+      NotifyResponse(response);
     })
     .catch((err) => {
-      NotifyResponse($q, err, 'error');
+      NotifyResponse(catchError(err), 'error');
     });
 });
 </script>

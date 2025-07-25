@@ -204,12 +204,10 @@ func (sh *ScenesHandler) LoadScene(c *gin.Context) {
 			return
 		}
 		c.JSON(http.StatusOK, scene)
-		break
-	}
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Errorf("scene '%s' not found", scene.Name),
-		})
 		return
 	}
+
+	c.JSON(http.StatusBadRequest, gin.H{
+		"error": fmt.Errorf("scene '%s' not found", scene.Name),
+	})
 }

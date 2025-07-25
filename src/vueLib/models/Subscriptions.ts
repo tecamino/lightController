@@ -1,7 +1,8 @@
 import type { Ref } from 'vue';
 import { reactive, ref } from 'vue';
-import { convertToSubscribe } from 'src/models/Subscribe';
-import type { Subs, Subscribe, RawSubs } from 'src/models/Subscribe';
+import { convertToSubscribe } from '../models/Subscribe';
+import type { Subscribe, RawSubs, RawSubscribe } from '../models/Subscribe';
+import type { Set } from './Set';
 
 const EMPTYUUID = '00000000-0000-0000-0000-000000000000';
 export const Subscriptions = reactive<Record<string, Subscribe>>({});
@@ -11,16 +12,12 @@ export type TableSubscription = {
   value: Ref<string | number | boolean | null | undefined>;
 };
 
-export function getRows(): Subs {
-  return Object.values(Subscriptions).map((sub) => {
-    sub.path = sub.path?.split(':').pop() ?? '';
-    if (!sub.type) sub.type = 'None';
-    else sub.type = sub.type.toLowerCase();
-    return sub;
-  });
+export function addRawSubscription(sub: RawSubscribe | Set | undefined) {
+  if (sub === undefined) return;
+  addSubscription(convertToSubscribe(sub as RawSubscribe));
 }
 
-export function addSubscriptions(subs: RawSubs) {
+export function addRawSubscriptions(subs: RawSubs) {
   subs.forEach((sub) => addSubscription(convertToSubscribe(sub)));
 }
 
@@ -46,9 +43,13 @@ export function updateSubscriptionValue(
   Subscriptions[uuid].value = ref(value);
 }
 
-export function removeSubscriptions(subs: RawSubs) {
+export function removeRawSubscription(sub: RawSubscribe | string) {
+  removeSubscription(typeof sub === 'string' ? sub : sub.uuid);
+}
+
+export function removeRawSubscriptions(subs: RawSubs) {
   subs.forEach((sub) => {
-    removeSubscription(sub.path);
+    removeSubscription(sub.uuid);
   });
 }
 
@@ -56,7 +57,7 @@ export function removeAllSubscriptions() {
   Object.keys(Subscriptions).forEach((key) => delete Subscriptions[key]);
 }
 
-function removeSubscription(uuid: string | undefined) {
+export function removeSubscription(uuid: string | undefined) {
   if (uuid === undefined) return;
   if (!Subscriptions || Subscriptions[uuid] === undefined) return;
   delete Subscriptions[uuid];
@@ -64,4 +65,9 @@ function removeSubscription(uuid: string | undefined) {
 
 export function findSubscriptionByPath(path: string): Subscribe | undefined {
   return Object.values(Subscriptions).find((sub) => sub.path === path);
+}
+
+export function findSubscriptionByUuid(uuid: string): Subscribe | undefined {
+  if (!Subscriptions[uuid]) return;
+  return Subscriptions[uuid];
 }
