@@ -10,7 +10,7 @@
       <q-input
         class="q-mt-lg q-mb-none q-pl-lg q-pr-xl"
         filled
-        v-model="path"
+        v-model="addingForm.path"
         label=""
         :rules="[(val) => !!val || 'Path is required']"
       >
@@ -18,7 +18,7 @@
           <div class="column">
             <span class="text-caption text-primary non-editable-prefix">Path *</span>
             <span class="text-body2 text-grey-6 non-editable-prefix"
-              >{{ prefix }}{{ staticPrefix }}</span
+              >{{ addingForm.prefix }}{{ addingForm.staticPrefix }}</span
             >
           </div>
         </template>
@@ -26,8 +26,8 @@
       <DataTypes class="q-mt-lg q-pl-md q-pr-xl" flat v-model:datatype="datatype"></DataTypes>
       <div class="q-pl-lg">
         <div class="text-grey text-bold">Read Write Access</div>
-        <q-checkbox v-model="read">Read</q-checkbox>
-        <q-checkbox v-model="write">Write</q-checkbox>
+        <q-checkbox v-model="addingForm.read">Read</q-checkbox>
+        <q-checkbox v-model="addingForm.write">Write</q-checkbox>
       </div>
       <q-input
         :type="valueType"
@@ -35,7 +35,7 @@
         label="Value"
         class="q-pl-md q-pr-xl"
         filled
-        v-model="value"
+        v-model="addingForm.value"
       ></q-input>
       <q-btn no-caps class="q-mb-xl q-mx-xl q-px-lg" @click="onSubmit" color="primary">{{
         props.buttonOkLabel
@@ -45,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { reactive, ref, watch } from 'vue';
 import DialogFrame from '../../dialog/DialogFrame.vue';
 import { useNotify } from '../../general/useNotify';
 import DataTypes from '../../buttons/DataTypes.vue';
@@ -56,16 +56,21 @@ import { convertToType } from '../Datapoint';
 import { catchError } from 'src/vueLib/models/error';
 
 const { NotifyResponse } = useNotify();
+
+const addingForm = reactive({
+  path: '',
+  value: '',
+  staticPrefix: '',
+  read: true,
+  write: true,
+  prefix: 'DBM:',
+});
 const Dialog = ref();
-const path = ref('');
-const staticPrefix = ref('');
-const value = ref('');
+
 const valueType = ref<'text' | 'number'>('text');
-const read = ref(true);
-const write = ref(true);
+
 const datatype = ref('None');
 const addForm = ref();
-const prefix = 'DBM:';
 
 const open = (uuid: string) => {
   Dialog.value?.open();
@@ -84,15 +89,15 @@ function onSubmit() {
     if (success) {
       type = convertToType(datatype.value);
 
-      if (read.value) access = 'R';
-      if (write.value) access += 'W';
+      if (addingForm.read) access = 'R';
+      if (addingForm.write) access += 'W';
       if (access == '') access = 'R';
 
-      setRequest(staticPrefix.value + path.value, type, value.value, access)
+      setRequest(addingForm.staticPrefix + addingForm.path, type, addingForm.value, access)
         .then((respond) => {
           if (respond) {
             respond.forEach((set) => {
-              NotifyResponse("Datapoint '" + prefix + set.path + "' added");
+              NotifyResponse("Datapoint '" + addingForm.prefix + set.path + "' added");
             });
             addRawSubscription(respond[0]);
             UpdateTable();
@@ -102,7 +107,7 @@ function onSubmit() {
           NotifyResponse(catchError(err), 'error');
         });
     } else {
-      if (path.value === '') {
+      if (addingForm.path === '') {
         NotifyResponse("Field 'Path' is requierd", 'error');
         return;
       } else NotifyResponse('Form not validated', 'error');
@@ -133,8 +138,8 @@ function getDatapoint(uuid: string) {
   getRequest(uuid, '', 1)
     .then((resp) => {
       if (resp[0]) {
-        staticPrefix.value = resp[0].path ?? '';
-        if (staticPrefix.value !== '') staticPrefix.value += ':';
+        addingForm.staticPrefix = resp[0].path ?? '';
+        if (addingForm.staticPrefix !== '') addingForm.staticPrefix += ':';
       }
     })
     .catch((err) => NotifyResponse(catchError(err), 'error'));

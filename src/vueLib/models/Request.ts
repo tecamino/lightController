@@ -1,3 +1,4 @@
+import type { Driver } from './Drivers';
 import type { Gets } from './Get';
 import type { Sets } from './Set';
 import type { Subs } from './Subscribe';
@@ -61,10 +62,11 @@ export async function rawSetsRequest(sets: Sets): Promise<Sets> {
 
 export async function setRequest(
   path: string,
-  type: string,
-  value: string | number | boolean,
+  type?: string,
+  value?: string | number | boolean,
   rights?: string,
   uuid?: string,
+  driver?: Driver,
   rename?: boolean,
 ): Promise<Sets> {
   const payload = {
@@ -73,6 +75,7 @@ export async function setRequest(
     value: value,
     rights: rights,
     uuid: uuid,
+    driver: driver,
     rename: rename,
   };
 
@@ -99,14 +102,18 @@ export async function setsRequest(sets: Sets): Promise<Sets> {
   }
 }
 
-export async function deleteRequest(uuid?: string, path?: string, rename?: boolean): Promise<Sets> {
+export async function deleteRequest(
+  uuid?: string,
+  path?: string,
+  driver?: Driver,
+  rename?: boolean,
+): Promise<Sets> {
   let payload = {};
   if (uuid) {
-    payload = { uuid: uuid, rename: rename };
+    payload = { uuid: uuid, driver: driver, rename: rename };
   } else if (path) {
-    payload = { path: path };
+    payload = { path: path, driver: driver };
   }
-
   const resp = await api.delete('/json_data', {
     data: {
       set: [payload],

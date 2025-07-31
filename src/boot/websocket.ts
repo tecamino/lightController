@@ -4,11 +4,8 @@ import { initWebSocket } from '../vueLib/services/websocket';
 
 export default boot(({ app }) => {
   const $q = app.config.globalProperties.$q as QVueGlobals;
-  const host = window.location.hostname;
-  const port = 8100;
 
-  const randomId = Math.floor(Math.random() * 10001); // random number from 0 to 10000
-  const ws = initWebSocket(`ws://${host}:${port}/ws?id=q${randomId}`, $q);
+  const ws = initWebSocket(window.location.hostname, 8100, $q);
 
   app.config.globalProperties.$socket = ws;
   ws.connect();

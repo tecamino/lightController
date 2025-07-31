@@ -3,10 +3,9 @@ import axios from 'axios';
 
 const host = window.location.hostname;
 const port = 8100;
-const baseURL = `http://${host}:${port}`;
 
 const api = axios.create({
-  baseURL: baseURL,
+  baseURL: `http://${host}:${port}`,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',

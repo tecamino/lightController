@@ -1,14 +1,21 @@
+import type { Driver } from './Drivers';
 export type Publish = {
   event: string;
   uuid: string;
   path: string;
   type: string;
+  drivers?: Record<string, Driver>;
   value: string | number | boolean | null;
   hasChild: boolean;
 };
 export type Pubs = Publish[];
 
-import { updateSubscriptionValue, removeRawSubscriptions } from './Subscriptions';
+import {
+  updateSubscriptionValue,
+  removeRawSubscriptions,
+  addRawSubscription,
+  removeRawSubscription,
+} from './Subscriptions';
 import { buildTree, buildTreeWithRawSubs, removeNodes } from '../dbm/dbmTree';
 import type { RawSubs, RawSubscribe } from '../models/Subscribe';
 import { ref } from 'vue';
@@ -32,6 +39,11 @@ export function publishToSubscriptions(pubs: Pubs) {
         event = 'onDelete';
         rawSubs.value.push(pub as RawSubscribe);
         break;
+    }
+    if (pub.drivers) {
+      removeRawSubscription(pub as RawSubscribe);
+      addRawSubscription(pub as RawSubscribe);
+      UpdateTable();
     }
     updateSubscriptionValue(pub.uuid, pub.value);
   });

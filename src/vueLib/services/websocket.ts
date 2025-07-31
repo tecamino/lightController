@@ -12,9 +12,11 @@ export let socket: WebSocket | null = null;
 
 const isConnected = ref(false);
 
-export function initWebSocket(url: string, $q?: QVueGlobals) {
+export function initWebSocket(host: string, port: number = 8100, $q?: QVueGlobals) {
+  const randomId = Math.floor(Math.random() * 10001); // random number from 0 to 10000
+
   const connect = () => {
-    socket = new WebSocket(url);
+    socket = new WebSocket(`ws://${host}:${port}/ws?id=q${randomId}`);
 
     socket.onopen = () => {
       console.log('WebSocket connected');

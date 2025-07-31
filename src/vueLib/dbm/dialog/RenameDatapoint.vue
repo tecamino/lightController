@@ -10,7 +10,7 @@
       <q-input
         class="q-mt-lg q-mb-none q-pl-md q-mx-lg"
         filled
-        v-model="path"
+        v-model="removeData.path"
         label="Current Path"
         label-color="primary"
         readonly
@@ -19,7 +19,7 @@
       <q-input
         class="q-mt-lg q-mt-none q-pl-md q-mx-lg"
         filled
-        v-model="newPath"
+        v-model="removeData.newPath"
         label="New Path *"
         label-color="primary"
         @keyup.enter="onSubmit"
@@ -36,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { reactive, ref } from 'vue';
 import DialogFrame from '../../dialog/DialogFrame.vue';
 import { useNotify } from '../../general/useNotify';
 import { getRequest, setRequest } from 'src/vueLib/models/Request';
@@ -49,10 +49,13 @@ import { buildTree } from '../dbmTree';
 const { NotifyResponse } = useNotify();
 const Dialog = ref();
 const datapoint = ref();
-const path = ref('');
-const newPath = ref('');
+const removeData = reactive({
+  path: '',
+  newPath: '',
+  prefix: 'DBM:',
+});
+
 const copyForm = ref();
-const prefix = 'DBM:';
 
 const open = (uuid: string) => {
   Dialog.value?.open();
@@ -62,14 +65,13 @@ const open = (uuid: string) => {
 function onSubmit() {
   copyForm.value.validate().then((success: undefined) => {
     if (success) {
-      if (newPath.value === path.value) {
+      if (removeData.newPath === removeData.path) {
         NotifyResponse('same name', 'warning');
         return;
       }
 
-      getRequest('', newPath.value.slice(prefix.length), 1)
+      getRequest('', removeData.newPath.slice(removeData.prefix.length), 1)
         .then((response) => {
-          console.log(10, response);
           if (response?.length > 0) {
             NotifyResponse("path '" + response[0]?.path + "' already exists", 'warning');
             return;
@@ -83,22 +85,24 @@ function onSubmit() {
           }
 
           setRequest(
-            newPath.value.slice(prefix.length),
+            removeData.newPath.slice(removeData.prefix.length),
             datapoint.value.type,
             datapoint.value.value,
             datapoint.value.rights,
             datapoint.value.uuid,
+            undefined,
             true,
           )
             .then((res) => {
               addRawSubscriptions(res as RawSubs);
+              console.log(80, res);
               buildTree(convertToSubscribes(res as RawSubs));
               UpdateTable();
             })
             .catch((err) => NotifyResponse(err, 'error'));
         });
     } else {
-      if (newPath.value === '') {
+      if (removeData.newPath === '') {
         NotifyResponse("Field 'New Path' is requierd", 'error');
         return;
       } else NotifyResponse('Form not validated', 'error');
@@ -130,8 +134,8 @@ function getDatapoint(uuid: string) {
     .then((resp) => {
       if (resp[0]) {
         datapoint.value = resp[0];
-        path.value = prefix + resp[0].path;
-        newPath.value = prefix + resp[0].path;
+        removeData.path = removeData.prefix + resp[0].path;
+        removeData.newPath = removeData.prefix + resp[0].path;
       }
     })
     .catch((err) => NotifyResponse(catchError(err), 'error'));

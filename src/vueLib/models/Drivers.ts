@@ -1,5 +1,9 @@
+import type { Bus } from './Bus';
 export interface Driver {
   type: string;
-  addess: number;
-  value: number;
+  buses?: Bus[];
 }
+
+export const driverDefault = <Driver>{
+  type: '',
+};

@@ -20,6 +20,7 @@ export type RawSubscribe = {
   path?: string;
   depth?: number;
   value?: string | number | boolean | null;
+  drivers?: Record<string, Driver>;
   rights?: string;
   hasChild?: boolean;
 };

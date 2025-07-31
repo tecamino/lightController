@@ -10,7 +10,7 @@
       <q-input
         class="q-mt-lg q-mb-none q-pl-md q-mx-lg"
         filled
-        v-model="path"
+        v-model="copyData.path"
         label="Current Path"
         label-color="primary"
         readonly
@@ -19,7 +19,7 @@
       <q-input
         class="q-mt-lg q-mt-none q-pl-md q-mx-lg"
         filled
-        v-model="copyPath"
+        v-model="copyData.copyPath"
         label="New Path *"
         label-color="primary"
         @keyup.enter="onSubmit"
@@ -36,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { reactive, ref } from 'vue';
 import DialogFrame from '../../dialog/DialogFrame.vue';
 import { useNotify } from '../../general/useNotify';
 import { getRequest, setsRequest } from 'src/vueLib/models/Request';
@@ -44,11 +44,14 @@ import { datapointRequestForCopy } from '../Datapoint';
 import { catchError } from 'src/vueLib/models/error';
 
 const { NotifyResponse } = useNotify();
+const copyData = reactive({
+  path: '',
+  copyPath: '',
+  prefix: 'DBM:',
+});
+
 const Dialog = ref();
-const path = ref('');
-const copyPath = ref('');
 const copyForm = ref();
-const prefix = 'DBM:';
 
 const open = (uuid: string) => {
   Dialog.value?.open();
@@ -58,18 +61,18 @@ const open = (uuid: string) => {
 function onSubmit() {
   copyForm.value.validate().then((success: undefined) => {
     if (success) {
-      if (copyPath.value === path.value) {
+      if (copyData.copyPath === copyData.path) {
         NotifyResponse('copy path can not be the same as current path', 'error');
         return;
       }
 
-      const absolutePath = path.value.slice(prefix.length);
-      const absolutecopyPath = copyPath.value.slice(prefix.length);
+      const absolutePath = copyData.path.slice(copyData.prefix.length);
+      const absolutecopyPath = copyData.copyPath.slice(copyData.prefix.length);
 
       getRequest('', absolutecopyPath, 1)
         .then((response) => {
           if (response?.length > 0) {
-            NotifyResponse("path '" + copyPath.value + "' already exists", 'warning');
+            NotifyResponse("path '" + copyData.copyPath + "' already exists", 'warning');
             return;
           }
         })
@@ -80,7 +83,7 @@ function onSubmit() {
                 setsRequest(
                   datapointRequestForCopy(response, absolutePath, absolutecopyPath),
                 ).catch((err) => console.error(err));
-                NotifyResponse(copyPath.value + ' copied');
+                NotifyResponse(copyData.copyPath + ' copied');
               })
               .catch((err) => NotifyResponse(catchError(err), 'error'));
           } else {
@@ -89,7 +92,7 @@ function onSubmit() {
           return;
         });
     } else {
-      if (copyPath.value === '') {
+      if (copyData.copyPath === '') {
         NotifyResponse("Field 'New Path' is requierd", 'error');
         return;
       } else NotifyResponse('Form not validated', 'error');
@@ -120,8 +123,8 @@ function getDatapoint(uuid: string) {
   getRequest(uuid)
     .then((resp) => {
       if (resp[0]) {
-        path.value = prefix + resp[0].path;
-        copyPath.value = prefix + resp[0].path;
+        copyData.path = copyData.prefix + resp[0].path;
+        copyData.copyPath = copyData.prefix + resp[0].path;
       }
     })
     .catch((err) => NotifyResponse(catchError(err), 'error'));

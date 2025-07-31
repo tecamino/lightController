@@ -6,7 +6,7 @@
       :class="'text-' + props.labelColor"
       >{{ props.dialogLabel ? props.dialogLabel : localDialogLabel }}</q-card-section
     >
-    <q-card-section v-if="drivers && drivers.length == 0">
+    <q-card-section v-if="datapoint.type !== 'BIT'">
       <q-input
         class="q-px-md q-ma-sm"
         label="current value"
@@ -27,15 +27,20 @@
       ></q-input>
     </q-card-section>
     <q-card-section v-else>
-      <q-table
-        flat
-        dense
-        virtual-scroll
-        :rows-per-page-options="[0]"
-        :rows="drivers"
-        :columns="columns"
-      >
-      </q-table>
+      <div class="column q-pr-xs q-ma-sm">
+        <div class="row items-center q-gutter-sm">
+          <div>current value</div>
+          <div class="row items-left">
+            <q-toggle class="readonly-toggle" left-label v-model="inputValue"></q-toggle>
+          </div>
+        </div>
+        <div class="row items-center q-gutter-lg">
+          <div>new value</div>
+          <div class="row items-left">
+            <q-toggle left-label v-model="writeValue"></q-toggle>
+          </div>
+        </div>
+      </div>
     </q-card-section>
     <q-card-section v-if="props.text" class="text-center" style="white-space: pre-line">{{
       props.text
@@ -63,15 +68,16 @@ import type { Subscribe } from '../../models/Subscribe';
 import type { Ref } from 'vue';
 import { setValues } from '../../services/websocket';
 import { useNotify } from '../../general/useNotify';
-import type { QTableProps } from 'quasar';
-import type { Driver } from '../../models/Drivers';
 import { catchError } from 'src/vueLib/models/error';
 
 const { NotifyResponse } = useNotify();
 const Dialog = ref();
+const localDialogLabel = ref('');
 const writeValue = ref();
 const onlyRead = ref(false);
 const writeType = ref<'text' | 'number'>('text');
+const datapoint = ref();
+const inputValue = ref(datapoint?.value);
 
 const props = defineProps({
   buttonOkLabel: {
@@ -100,33 +106,14 @@ const props = defineProps({
   },
 });
 
-const datapoint = ref();
-const inputValue = ref(datapoint?.value);
-const localDialogLabel = ref('');
-const drivers = ref<Driver[]>([]);
-const columns = [
-  { name: 'type', label: 'Driver Name', field: 'type', align: 'left' },
-  { name: 'bus', label: 'Bus Name', field: 'bus', align: 'center' },
-  { name: 'address', label: 'Address', field: 'address', align: 'center' },
-] as QTableProps['columns'];
-
-const open = (sub: Ref<Subscribe>, type?: string) => {
+const open = (sub: Ref<Subscribe>) => {
   datapoint.value = sub.value;
   if (datapoint.value.rights == 'R') onlyRead.value = true;
-  drivers.value = [];
-  switch (type) {
-    case 'driver':
-      localDialogLabel.value = 'Update Drivers';
-      if (sub.value.drivers) drivers.value = Object.values(sub.value.drivers);
-      writeValue.value = sub.value.drivers;
-      break;
-    default:
-      localDialogLabel.value = 'Update Value';
-      if (sub.value.type === 'STR') writeType.value = 'text';
-      else if (sub.value.type === 'BIT') writeType.value = 'text';
-      else writeType.value = 'number';
-      writeValue.value = sub.value.value;
-  }
+  localDialogLabel.value = 'Update Value';
+  if (sub.value.type === 'STR') writeType.value = 'text';
+  else writeType.value = 'number';
+  writeValue.value = sub.value.value;
+
   Dialog.value?.open();
 };
 
@@ -155,5 +142,9 @@ defineExpose({ open });
 <style scoped>
 .outercard {
   border-radius: 10px;
+}
+.readonly-toggle {
+  pointer-events: none;
+  opacity: 0.7;
 }
 </style>

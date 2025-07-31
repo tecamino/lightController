@@ -66,18 +66,14 @@ const internalShowDialog = ref(props.showDialog);
 watch(
   () => props.showDialog,
   (newValue) => {
-    console.log('watch showDialog', newValue);
     internalShowDialog.value = newValue;
   },
 );
 watch(internalShowDialog, (newValue) => {
-  console.log('watch internalShowDialog', newValue);
   emit('update:showDialog', newValue);
   if (!newValue) {
-    console.log('emit cancel');
     emit('cancel');
   } else {
-    console.log('emit confirmed');
     emit('confirmed');
   }
 });
