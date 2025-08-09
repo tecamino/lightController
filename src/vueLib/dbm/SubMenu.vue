@@ -102,7 +102,7 @@
     </q-list>
   </q-menu>
   <RenameDatapoint :dialogLabel="label" width="700px" button-ok-label="Rename" ref="renameDialog" />
-  <AddDialog :dialogLabel="label" width="700px" button-ok-label="Add" ref="addDialog" />
+  <AddDialog :dialogLabel="label" width="750px" button-ok-label="Add" ref="addDialog" />
   <RemoveDialog :dialogLabel="label" width="350px" button-ok-label="Remove" ref="removeDialog" />
   <CopyDialog :dialogLabel="label" width="300px" button-ok-label="Copy" ref="copyDialog" />
   <UpdateDatapoint

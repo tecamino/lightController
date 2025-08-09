@@ -11,4 +11,10 @@ export type Response = {
   publish?: Pubs;
   error?: boolean;
   message?: string;
+  response?: {
+    data?: {
+      error?: boolean;
+      message?: string;
+    };
+  };
 };

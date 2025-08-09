@@ -1,9 +1,13 @@
 import { reactive, ref } from 'vue';
 import type { QTableColumn } from 'quasar';
 import type { Subscribe } from './Subscribe';
+import type { Bus } from './Bus';
+import type { Topic } from './Topic';
 
 export type DriverTableRow = {
   type: string;
+  buses?: Bus[];
+  topic?: Topic;
   bus: string;
   address?: number | undefined;
   subscribe?: string;

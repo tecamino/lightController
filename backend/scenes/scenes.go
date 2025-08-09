@@ -31,45 +31,35 @@ func NewScenesHandler(dir string) *ScenesHandler {
 func (sh *ScenesHandler) SaveScene(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 		return
 	}
 
 	var scene models.Scene
 	err = json.Unmarshal(body, &scene)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 		return
 	}
 
 	if _, err := os.Stat(path.Join(sh.dir)); err != nil {
 		err := os.MkdirAll(sh.dir, 0755)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
+			c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 			return
 		}
 	}
 
 	f, err := os.OpenFile(path.Join(sh.dir, scene.Name+".scene"), os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0644)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 		return
 	}
 	defer f.Close()
 
 	_, err = f.Write(body)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 		return
 	}
 
@@ -81,26 +71,20 @@ func (sh *ScenesHandler) SaveScene(c *gin.Context) {
 func (sh *ScenesHandler) DeleteScene(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 		return
 	}
 
 	var scene models.Scene
 	err = json.Unmarshal(body, &scene)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 		return
 	}
 
 	err = os.Remove(path.Join(sh.dir, scene.Name+".scene"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 		return
 	}
 
@@ -114,26 +98,20 @@ func (sh *ScenesHandler) LoadScenes(c *gin.Context) {
 
 	files, err := utils.FindAllFiles("./scenes", ".scene")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 		return
 	}
 
 	for _, f := range files {
 		content, err := os.ReadFile(f)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
+			c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 			return
 		}
 		var scene models.Scene
 		err = json.Unmarshal(content, &scene)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
+			c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 			return
 		}
 		sceneMap[scene.Name] = scene
@@ -160,9 +138,7 @@ func (sh *ScenesHandler) LoadScenes(c *gin.Context) {
 func (sh *ScenesHandler) LoadScene(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 		return
 	}
 
@@ -170,17 +146,13 @@ func (sh *ScenesHandler) LoadScene(c *gin.Context) {
 
 	err = json.Unmarshal(body, &scene)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 		return
 	}
 
 	files, err := utils.FindAllFiles("./scenes", ".scene")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 		return
 	}
 
@@ -190,24 +162,18 @@ func (sh *ScenesHandler) LoadScene(c *gin.Context) {
 		}
 		content, err := os.ReadFile(f)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
+			c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 			return
 		}
 
 		err = json.Unmarshal(content, &scene)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
+			c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 			return
 		}
 		c.JSON(http.StatusOK, scene)
 		return
 	}
 
-	c.JSON(http.StatusBadRequest, gin.H{
-		"error": fmt.Errorf("scene '%s' not found", scene.Name),
-	})
+	c.JSON(http.StatusBadRequest, models.NewJsonErrorMessageResponse(fmt.Sprintf("scene '%s' not found", scene.Name)))
 }

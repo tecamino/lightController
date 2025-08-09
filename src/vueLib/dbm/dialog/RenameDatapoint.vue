@@ -1,5 +1,10 @@
 <template>
-  <DialogFrame ref="Dialog" :width="props.width" :header-title="props.dialogLabel">
+  <DialogFrame
+    ref="Dialog"
+    :width="props.width"
+    :height="props.height"
+    :header-title="props.dialogLabel"
+  >
     <q-card-section
       v-if="props.dialogLabel"
       class="text-bold text-left q-mb-none q-pb-none"
@@ -26,7 +31,7 @@
         :rules="[(val) => !!val || 'Path is required']"
       >
       </q-input>
-      <div class="q-mx-sm">
+      <div class="row justify-end q-mr-lg">
         <q-btn no-caps class="q-mb-xl q-ml-lg q-px-lg" @click="onSubmit" color="primary">{{
           props.buttonOkLabel
         }}</q-btn>
@@ -95,7 +100,6 @@ function onSubmit() {
           )
             .then((res) => {
               addRawSubscriptions(res as RawSubs);
-              console.log(80, res);
               buildTree(convertToSubscribes(res as RawSubs));
               UpdateTable();
             })
@@ -126,6 +130,10 @@ const props = defineProps({
   width: {
     type: String,
     default: '300px',
+  },
+  height: {
+    type: String,
+    default: '400px',
   },
 });
 

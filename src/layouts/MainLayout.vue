@@ -10,10 +10,11 @@
         />
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
 
-        <q-toolbar-title> Light Control </q-toolbar-title>
+        <q-toolbar-title> {{ productName }} </q-toolbar-title>
 
         <div>Version {{ version }}</div>
         <q-btn dense icon="refresh" square class="q-px-md q-ml-md" @click="refresh" />
+        <LoginMenu />
       </q-toolbar>
     </q-header>
 
@@ -25,8 +26,11 @@
         <q-item to="/scenes" clickable v-ripple @click="closeDrawer">
           <q-item-section>Scenes</q-item-section>
         </q-item>
-        <q-item to="/data" clickable v-ripple @click="closeDrawer">
+        <q-item v-if="autorized" to="/data" clickable v-ripple @click="closeDrawer">
           <q-item-section>Data</q-item-section>
+        </q-item>
+        <q-item to="/services" clickable v-ripple @click="closeDrawer">
+          <q-item-section>Services</q-item-section>
         </q-item>
       </q-list>
     </q-drawer>
@@ -38,10 +42,14 @@
 
 <script setup lang="ts">
 import logo from 'src/assets/LOGO_CF-ICON_color.svg';
-import { ref } from 'vue';
-import { version } from '../..//package.json';
+import { computed, ref } from 'vue';
+import { version, productName } from '../../package.json';
+import LoginMenu from 'src/vueLib/login/LoginMenu.vue';
+import { useUserStore } from 'src/vueLib/login/userStore';
 
 const leftDrawerOpen = ref(false);
+const user = useUserStore();
+const autorized = computed(() => !!user.isAuthorizedAs(['admin']));
 
 function toggleLeftDrawer() {
   leftDrawerOpen.value = !leftDrawerOpen.value;

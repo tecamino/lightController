@@ -8,12 +8,14 @@
     </q-card-section>
     <div class="text-center text-bold text-primary">
       Do you want to remove Datapoint
-      <br />
+      <br /><br />
       '{{ datapoint.path ?? '' }}'
     </div>
-    <q-btn no-caps class="q-ma-md" filled color="negative" @click="remove">{{
-      props.buttonOkLabel
-    }}</q-btn>
+    <div class="row justify-end">
+      <q-btn no-caps class="q-ma-lg q-mr-xl" filled color="negative" @click="remove">{{
+        props.buttonOkLabel
+      }}</q-btn>
+    </div>
   </DialogFrame>
 </template>
 

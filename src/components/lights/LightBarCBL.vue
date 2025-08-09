@@ -56,10 +56,6 @@
           color="blue"
           class="q-ma-sm"
         ></LightSlider>
-        <div class="colums q-ma-xl">
-          <q-btn color="secondary" @click="settings = !settings" icon="settings">Settings</q-btn>
-          <SettingDialog :settings-dialog="settings"></SettingDialog>
-        </div>
       </q-card-section>
     </q-card>
   </div>
@@ -67,16 +63,14 @@
 
 <script setup lang="ts">
 import LightSlider from './LightSlider.vue';
-import { ref, onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted } from 'vue';
 import { unsubscribe, subscribeToPath } from 'src/vueLib/services/websocket';
-import SettingDialog from 'src/components/lights/SettingDomeLight.vue';
 import { useNotify } from 'src/vueLib/general/useNotify';
 import { updateValue } from 'src/vueLib/dbm/dbmTree';
 import { removeAllSubscriptions } from 'src/vueLib/models/Subscriptions';
 import { catchError } from 'src/vueLib/models/error';
 
 const { NotifyResponse } = useNotify();
-const settings = ref(false);
 const brightness = updateValue(NotifyResponse, 'LightBar:Brightness');
 const state = updateValue(NotifyResponse, 'LightBar:State');
 onMounted(() => {

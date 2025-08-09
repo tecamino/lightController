@@ -2,11 +2,20 @@ import { boot } from 'quasar/wrappers';
 import axios from 'axios';
 
 const host = window.location.hostname;
-const port = 8100;
+const portDbm = 8100;
+const portApp = 9500;
 
-const api = axios.create({
-  baseURL: `http://${host}:${port}`,
+const dbmApi = axios.create({
+  baseURL: `http://${host}:${portDbm}`,
   timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+const appApi = axios.create({
+  baseURL: `http://${host}:${portApp}/api`,
+  timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -14,7 +23,8 @@ const api = axios.create({
 
 export default boot(({ app }) => {
   app.config.globalProperties.$axios = axios;
-  app.config.globalProperties.$api = api;
+  app.config.globalProperties.$dbmApi = dbmApi;
+  app.config.globalProperties.$appApi = appApi;
 });
 
-export { axios, api };
+export { axios, dbmApi, appApi };

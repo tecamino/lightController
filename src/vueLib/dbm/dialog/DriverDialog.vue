@@ -1,19 +1,23 @@
 <template>
-  <DialogFrame ref="Dialog" :width="props.width" :header-title="localDialogLabel">
+  <DialogFrame
+    ref="Dialog"
+    :width="props.width"
+    :height="props.height"
+    :header-title="localDialogLabel"
+  >
     <q-card-section
-      v-if="props.dialogLabel || localDialogLabel"
+      v-if="dialogLabel"
       class="text-bold text-left q-mb-none q-pb-none"
       :class="'text-' + props.labelColor"
-      >{{ props.dialogLabel || localDialogLabel }}</q-card-section
-    >
+      >{{ dialogLabel }}
+    </q-card-section>
     <q-card-section v-if="props.text" class="text-center" style="white-space: pre-line">{{
       props.text
     }}</q-card-section>
     <q-form ref="form">
-      <q-card-section class="q-gutter-xs row q-col-gutter-xs">
+      <q-card-section class="q-gutter-xs row q-col-gutter-xs q-ml-sm">
         <div>
           <q-select
-            class="col-8"
             filled
             label="Driver Name"
             type="text"
@@ -24,7 +28,6 @@
             v-model="driverForm.type"
           />
           <q-input
-            class="col-8"
             filled
             label="Bus"
             type="text"
@@ -35,18 +38,17 @@
           />
           <q-input
             v-if="driverForm.isAddress"
-            class="col-8"
             filled
             dense
             label="Address"
             type="number"
             name="Address"
+            @keyup.enter="updateDriver"
             v-model.number="driverForm.address"
           />
         </div>
         <div v-if="!driverForm.isAddress" class="q-gutter-xs row q-col-gutter-xs">
           <q-input
-            class="col-8"
             filled
             dense
             label="Subscribe"
@@ -55,21 +57,21 @@
             v-model="driverForm.subscribe"
           />
           <q-input
-            class="col-8"
             filled
             dense
             label="Publish"
             type="text"
             name="Address"
+            @keyup.enter="updateDriver"
             v-model="driverForm.publish"
           />
         </div>
       </q-card-section>
     </q-form>
-    <q-card-actions class="text-primary">
+    <q-card-actions align="right" class="text-primary">
       <q-btn v-if="props.buttonCancelLabel" flat :label="props.buttonCancelLabel" v-close-popup />
       <q-btn
-        class="q-mb-xl q-ml-lg q-px-lg"
+        class="q-mb-xl q-mr-lg"
         v-if="props.buttonOkLabel"
         color="primary"
         no-caps
@@ -82,10 +84,10 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue';
+import { reactive, ref, watch, computed } from 'vue';
 import DialogFrame from '../../dialog/DialogFrame.vue';
 import type { Driver } from '../../models/Drivers';
-import { setRequest } from 'src/vueLib/models/Request';
+import { deleteRequest, setRequest } from 'src/vueLib/models/Request';
 import { addRawSubscriptions } from 'src/vueLib/models/Subscriptions';
 import { convertToSubscribe, type RawSubs } from 'src/vueLib/models/Subscribe';
 import { useNotify } from 'src/vueLib/general/useNotify';
@@ -95,6 +97,7 @@ import { updateDriverTable, type DriverTableRow } from 'src/vueLib/models/driver
 const { NotifyResponse } = useNotify();
 
 const Dialog = ref();
+const dialogLabel = computed(() => props.dialogLabel || localDialogLabel.value);
 const options = ['ArtNetDriver', 'OSCDriver'];
 const driverForm = reactive({
   type: 'ArtNetDriver',
@@ -130,6 +133,10 @@ const props = defineProps({
     type: String,
     default: '300px',
   },
+  height: {
+    type: String,
+    default: '480px',
+  },
 });
 
 const localDialogLabel = ref('');
@@ -138,6 +145,7 @@ let dpUuid = '';
 const form = ref();
 const address = ref();
 const topic = ref();
+const edit = ref(false);
 
 watch(
   () => driverForm.type,
@@ -158,13 +166,20 @@ const open = (uuid: string, drvs: DriverTableRow, type: 'add' | 'edit') => {
   switch (type) {
     case 'add':
       localDialogLabel.value = 'Add Driver';
-      driverForm.type = 'ArtNetDriver';
-      driverForm.isAddress = true;
+      edit.value = false;
+      Object.assign(driverForm, {
+        type: 'ArtNetDriver',
+        bus: '',
+        isAddress: true,
+        address: 0,
+        subscribe: '',
+        publish: '',
+      });
       break;
     case 'edit':
       localDialogLabel.value = 'Edit Driver';
-      driverForm.type = drvs.type;
-      driverForm.bus = drvs.bus;
+      edit.value = true;
+      fillDriverFormFromRow(drvs);
   }
 
   dpUuid = uuid;
@@ -177,9 +192,9 @@ const open = (uuid: string, drvs: DriverTableRow, type: 'add' | 'edit') => {
   Dialog.value?.open();
 };
 
-function updateDriver() {
-  form.value?.validate();
-  if (!driverForm.type || !driverForm.bus) {
+async function updateDriver() {
+  const valid = await form.value?.validate();
+  if (!valid) {
     NotifyResponse('Please fill in all required fields', 'warning');
     return;
   }
@@ -191,6 +206,15 @@ function updateDriver() {
     topic.value = { subscribe: [driverForm.subscribe], publish: [driverForm.publish] };
   }
 
+  if (edit.value) {
+    deleteRequest(dpUuid, '', driver.value)
+      .then((resp) => {
+        resp.forEach((set) => {
+          updateDriverTable(convertToSubscribe(set));
+        });
+      })
+      .catch((err) => NotifyResponse(err, 'error'));
+  }
   setRequest('', undefined, undefined, undefined, dpUuid, {
     type: driverForm.type,
     buses: [
@@ -214,6 +238,14 @@ function updateDriver() {
     .catch((err) => {
       NotifyResponse(err, 'error');
     });
+}
+
+function fillDriverFormFromRow(drvs: DriverTableRow) {
+  driverForm.type = drvs.type;
+  driverForm.bus = drvs.buses?.[0]?.name ?? '';
+  driverForm.address = drvs.buses?.[0]?.address?.[0] ?? -1;
+  driverForm.subscribe = drvs.topic?.subscribe?.[0] ?? '';
+  driverForm.publish = drvs.topic?.publish?.[0] ?? '';
 }
 
 defineExpose({ open });

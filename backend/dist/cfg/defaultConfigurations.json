@@ -1,0 +1,28 @@
+{
+    "drivers":[{
+        "name":"ArtNet",
+        "description":"ArtNet Driver DMX over UDP/IP",
+        "executablePath":"bin/tecamino-driver-artNet-linux-arm64",
+        "workingDirectory":"bin",
+        "arguments":[
+            "-cfg './cfg'",
+            "-serverIp '127.0.0.1'",
+            "-serverPort 8100",
+            "-port 8200"
+        ]
+    },
+    {
+        "name":"OSC Driver",
+        "description":"OSC Driver Music Mixer over UDP/IP",
+        "executablePath":"bin/tecamino-driver-osc-linux-arm64",
+        "workingDirectory":"bin",
+        "arguments":[
+            "-cfg './cfg'",
+            "-serverIp '127.0.0.1'",
+            "-serverPort 8100",
+            "-port 8300"    
+        ]
+    } 
+
+    ]
+}

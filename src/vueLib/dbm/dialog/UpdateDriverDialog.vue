@@ -1,5 +1,10 @@
 <template>
-  <DialogFrame ref="Dialog" :width="props.width" :header-title="datapoint?.path">
+  <DialogFrame
+    ref="Dialog"
+    :width="props.width"
+    :height="props.height"
+    :header-title="'DBM:' + datapoint?.path"
+  >
     <q-card-section
       v-if="props.dialogLabel || localDialogLabel"
       class="text-bold text-left q-mb-none q-pb-none"
@@ -44,12 +49,16 @@
       <q-menu ref="contextMenuRef" context-menu>
         <q-list>
           <q-item>
-            <q-item-section class="cursor-pointer" @click="handleRow(driver, 'edit')">
+            <q-item-section v-close-popup class="cursor-pointer" @click="handleRow(driver, 'edit')">
               Edit
             </q-item-section>
           </q-item>
           <q-item>
-            <q-item-section class="text-negative cursor-pointer" @click="deleteDriver(driver)">
+            <q-item-section
+              v-close-popup
+              class="text-negative cursor-pointer"
+              @click="deleteDriver(driver)"
+            >
               Delete
             </q-item-section>
           </q-item>
@@ -59,7 +68,7 @@
     <q-card-section v-if="props.text" class="text-center" style="white-space: pre-line">{{
       props.text
     }}</q-card-section>
-    <q-card-actions align="left" class="text-primary">
+    <q-card-actions align="right" class="text-primary">
       <q-btn v-if="props.buttonCancelLabel" flat :label="props.buttonCancelLabel" v-close-popup>
       </q-btn>
       <q-btn
@@ -119,6 +128,10 @@ const props = defineProps({
   width: {
     type: String,
     default: '300px',
+  },
+  height: {
+    type: String,
+    default: '500px',
   },
 });
 

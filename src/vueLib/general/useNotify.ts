@@ -22,6 +22,19 @@ export function useNotify() {
         break;
     }
 
+    if (response instanceof Error) {
+      const resp = response as Response;
+      if (resp.response?.data?.error) {
+        $q?.notify({
+          message: resp.response.data.message as string,
+          color: color,
+          position: 'bottom-right',
+          icon: icon,
+          timeout: timeout,
+        });
+        return;
+      }
+    }
     if (response) {
       const message = typeof response === 'string' ? response : (response.message ?? '');
       if (message === '') {

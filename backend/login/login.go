@@ -19,25 +19,19 @@ import (
 func (lm *LoginManager) AddUser(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 		return
 	}
 
 	user := models.User{}
 	err = json.Unmarshal(body, &user)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 		return
 	}
 
 	if !user.IsValid() {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "user empty",
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorMessageResponse("user empty"))
 		return
 	}
 
@@ -54,20 +48,16 @@ func (lm *LoginManager) AddUser(c *gin.Context) {
 	}
 
 	if exists {
-		c.JSON(http.StatusOK, gin.H{
-			"error": fmt.Sprintf("user '%s' exists already", user.Name),
-		})
+		c.JSON(http.StatusOK, models.NewJsonErrorMessageResponse(fmt.Sprintf("user '%s' exists already", user.Name)))
 		return
 	}
 
 	hash, err := utils.HashPassword(user.Password)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 		return
 	}
-	if _, err := db.Exec(dbRequest.DBNewUser, user.Name, hash); dbRequest.CheckDBError(c, user.Name, err) {
+	if _, err := db.Exec(dbRequest.DBNewUser, user.Role, user.Name, hash); dbRequest.CheckDBError(c, user.Name, err) {
 		return
 	}
 
@@ -79,25 +69,19 @@ func (lm *LoginManager) AddUser(c *gin.Context) {
 func (lm *LoginManager) RemoveUser(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 		return
 	}
 
 	user := models.User{}
 	err = json.Unmarshal(body, &user)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 		return
 	}
 
 	if !user.IsValid() {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "user empty",
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorMessageResponse("user empty"))
 		return
 	}
 
@@ -108,14 +92,12 @@ func (lm *LoginManager) RemoveUser(c *gin.Context) {
 	defer db.Close()
 
 	var storedPassword string
-	if err := db.QueryRow(dbRequest.DBQueryPassword, user.Name).Scan(&storedPassword); dbRequest.CheckDBError(c, user.Name, err) {
+	if err := db.QueryRow(dbRequest.DBQueryPassword, user.Name).Scan(&storedPassword, &user.Role); dbRequest.CheckDBError(c, user.Name, err) {
 		return
 	}
 
 	if !utils.CheckPassword(user.Password, storedPassword) {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "wrong password",
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorMessageResponse("wrong password"))
 		return
 	}
 
@@ -131,27 +113,19 @@ func (lm *LoginManager) RemoveUser(c *gin.Context) {
 func (lm *LoginManager) Login(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 		return
 	}
 
 	user := models.User{}
 	err = json.Unmarshal(body, &user)
 	if err != nil {
-		fmt.Println(2)
-
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorResponse(err))
 		return
 	}
 
 	if !user.IsValid() {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "user empty",
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorMessageResponse("user empty"))
 		return
 	}
 
@@ -162,41 +136,36 @@ func (lm *LoginManager) Login(c *gin.Context) {
 	defer db.Close()
 
 	var storedPassword string
-	if err := db.QueryRow(dbRequest.DBQueryPassword, user.Name).Scan(&storedPassword); dbRequest.CheckDBError(c, user.Name, err) {
+	if err := db.QueryRow(dbRequest.DBQueryPassword, user.Name).Scan(&user.Role, &storedPassword); dbRequest.CheckDBError(c, user.Name, err) {
 		return
 	}
 
 	if !utils.CheckPassword(user.Password, storedPassword) {
-		fmt.Println(2, user.Password)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "wrong password",
-		})
+		c.JSON(http.StatusBadRequest, models.NewJsonErrorMessageResponse("wrong password"))
 		return
 	}
 
 	// Create token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": user.Name,
-		"exp":      time.Now().Add(time.Hour * 72).Unix(), // expires in 72h
+		"role":     user.Role,
+		"exp":      time.Now().Add(time.Minute * 60).Unix(), // expires in 72h
 	})
 
 	secret, err := utils.GenerateJWTSecret(32) // 32 bytes = 256 bits
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "error generate jwt token"})
+		c.JSON(http.StatusInternalServerError, models.NewJsonErrorMessageResponse("error generate jwt token"))
 		return
 	}
 
 	// Sign and get the complete encoded token as a string
 	tokenString, err := token.SignedString(secret)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Could not generate token"})
+		c.JSON(http.StatusInternalServerError, models.NewJsonErrorMessageResponse("Could not generate token"))
 		return
 	}
 
 	c.JSON(http.StatusOK, models.User{
-		Name:  user.Name,
 		Token: tokenString,
 	})
 }

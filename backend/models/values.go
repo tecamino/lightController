@@ -1,7 +1,9 @@
 package models
 
 type Values struct {
-	MovingHead *MovingHead `json:"movingHead"`
-	LightBar   *LightBar   `json:"lightBar"`
-	Value      any         `json:"value"`
+	Stagelights []Value `json:"stageLights,omitempty"`
+	LightBar    []Value `json:"lightBar,omitempty"`
+	FloogLights []Value `json:"floodLights,omitempty"`
+	MovingHead  []Value `json:"movingHead,omitempty"`
+	Value       any     `json:"value"`
 }

@@ -60,7 +60,12 @@
         </q-td>
       </template>
     </q-table>
-    <RenameDialog width="400px" button-ok-label="Rename" ref="renameDialog" />
+    <RenameDialog
+      dialogLabel="Rename Datapoint"
+      width="400px"
+      button-ok-label="Rename"
+      ref="renameDialog"
+    />
     <UpdateDialog width="400px" button-ok-label="Write" ref="updateDialog" />
     <UpdateDriver width="400px" ref="updateDriverDialog" />
     <UpdateDatatype
@@ -89,7 +94,6 @@ const updateDriverDialog = ref();
 const updateDatatype = ref();
 
 const openDialog = (sub: Subscribe, type?: string) => {
-  console.log(11, sub);
   if (sub.path?.split(':')[0] === 'System' && sub.path !== 'DBM') return;
   switch (type) {
     case 'type':
@@ -103,7 +107,7 @@ const openDialog = (sub: Subscribe, type?: string) => {
       updateDialog.value?.open(ref(sub), type);
       break;
     case 'drivers':
-      if (sub.type === 'NONE') return;
+      if (sub.path === 'DBM' || sub.type === 'NONE') return;
       updateDriverDialog.value?.open(sub);
       break;
   }

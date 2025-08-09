@@ -21,13 +21,6 @@
           >{{ settings.reversePan ? 'Reversed Pan' : 'Normal Pan' }}</q-btn
         >
       </q-card-section>
-      <q-card-section>
-        <q-input
-          type="number"
-          label="Start Address"
-          v-model:model-value="settings.startAddress"
-        ></q-input>
-      </q-card-section>
       <q-card-actions align="right">
         <q-btn flat label="Cancel" v-close-popup />
         <q-btn flat label="Save" @click="saveSettings" />
@@ -45,7 +38,6 @@ const settings = defineModel<Settings>('settings', {
     show: false,
     reversePan: false,
     reverseTilt: false,
-    startAddress: 0,
   },
   required: true,
 });

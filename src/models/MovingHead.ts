@@ -14,5 +14,4 @@ export type Settings = {
   show: boolean;
   reversePan: boolean;
   reverseTilt: boolean;
-  startAddress: number;
 };

@@ -1,5 +1,10 @@
 <template>
-  <DialogFrame ref="Dialog" :width="props.width" :header-title="props.dialogLabel">
+  <DialogFrame
+    ref="Dialog"
+    :width="props.width"
+    :height="props.height"
+    :header-title="props.dialogLabel"
+  >
     <q-card-section
       v-if="props.dialogLabel"
       class="text-bold text-left q-mb-none q-pb-none"
@@ -27,9 +32,11 @@
       >
       </q-input>
       <div class="q-mx-sm">
-        <q-btn no-caps class="q-mb-xl q-ml-lg q-px-lg" @click="onSubmit" color="primary">{{
-          props.buttonOkLabel
-        }}</q-btn>
+        <div class="row justify-end">
+          <q-btn no-caps class="q-mb-xl q-mr-md q-px-lg" @click="onSubmit" color="primary">{{
+            props.buttonOkLabel
+          }}</q-btn>
+        </div>
       </div>
     </q-form>
   </DialogFrame>
@@ -116,6 +123,10 @@ const props = defineProps({
   width: {
     type: String,
     default: '300px',
+  },
+  height: {
+    type: String,
+    default: '400px',
   },
 });
 

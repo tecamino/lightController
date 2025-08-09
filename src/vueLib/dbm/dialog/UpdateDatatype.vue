@@ -1,10 +1,17 @@
 <template>
-  <DialogFrame ref="Dialog" :width="props.width" :header-title="props.dialogLabel">
+  <DialogFrame
+    ref="Dialog"
+    :width="props.width"
+    :height="props.height"
+    :header-title="props.dialogLabel"
+  >
     <q-card-section
       v-if="props.dialogLabel"
       class="text-bold text-left q-mb-none q-pb-none"
       :class="'text-' + props.labelColor"
-      >DBM:{{ datapoint.path }}
+      >{{
+        datapoint.uuid === '00000000-0000-0000-0000-000000000000' ? 'DBM' : 'DBM:' + datapoint.path
+      }}
     </q-card-section>
     <q-form ref="datatypeForm" class="q-gutter-md">
       <q-input
@@ -12,7 +19,7 @@
         filled
         dense
         v-model="currentDatatype"
-        label="Current Path"
+        label="Current Datatype"
         label-color="primary"
         readonly
       >
@@ -20,6 +27,7 @@
       <q-select
         class="q-mt-lg q-mt-none q-pl-md q-mx-lg"
         popup-content-class="small-dropdown"
+        label="New Datatype"
         filled
         dense
         v-model="selectedDatatype"
@@ -27,7 +35,7 @@
         option-label="label"
       >
       </q-select>
-      <div class="q-mx-sm">
+      <div class="row justify-end q-mr-lg">
         <q-btn no-caps class="q-mb-xl q-ml-lg q-px-lg" @click="onSubmit" color="primary">{{
           props.buttonOkLabel
         }}</q-btn>
@@ -113,6 +121,10 @@ const props = defineProps({
   width: {
     type: String,
     default: '300px',
+  },
+  height: {
+    type: String,
+    default: '340px',
   },
 });
 

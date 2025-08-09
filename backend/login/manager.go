@@ -37,7 +37,7 @@ func NewLoginManager(dir string) (*LoginManager, error) {
 		if err != nil {
 			return nil, err
 		}
-		_, err = db.Exec(dbRequest.DBNewUser, "admin", hash)
+		_, err = db.Exec(dbRequest.DBNewUser, "admin", "admin", hash)
 		if err != nil {
 			return nil, err
 		}

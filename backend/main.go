@@ -1,6 +1,7 @@
 package main
 
 import (
+	"backend/drivers"
 	"backend/login"
 	"backend/models"
 	secenes "backend/scenes"
@@ -27,6 +28,8 @@ func main() {
 	flag.Var(&allowOrigins, "allowOrigin", "Allowed origin (can repeat this flag)")
 
 	spa := flag.String("spa", "./dist/spa", "quasar spa files")
+	cfgDir := flag.String("cfg", "./cfg", "config dir")
+	driversCfg := flag.String("drivers", "defaultConfigurations.json", "drivers config file name")
 	workingDir := flag.String("workingDirectory", ".", "quasar spa files")
 	ip := flag.String("ip", "0.0.0.0", "server listening ip")
 	port := flag.Uint("port", 9500, "server listening port")
@@ -69,6 +72,9 @@ func main() {
 	//new scenes handler
 	scenesHandler := secenes.NewScenesHandler("")
 
+	//new scenes handler
+	driversHandler := drivers.NewDriverHandler(filepath.Join(*cfgDir, *driversCfg))
+
 	// new server
 	s := server.NewServer()
 
@@ -92,6 +98,7 @@ func main() {
 	api := s.Routes.Group("/api")
 	//set routes
 	api.GET("/loadScenes", scenesHandler.LoadScenes)
+	api.GET("/allDrivers", driversHandler.GetDriverList)
 	api.POST("/login", loginManager.Login)
 	api.POST("/user/add", loginManager.AddUser)
 	api.POST("/saveScene", scenesHandler.SaveScene)
@@ -104,7 +111,7 @@ func main() {
 	s.Routes.NoRoute(func(c *gin.Context) {
 		// Disallow fallback for /api paths
 		if strings.HasPrefix(c.Request.URL.Path, "/api") {
-			c.JSON(http.StatusNotFound, gin.H{"error": "API endpoint not found"})
+			c.JSON(http.StatusNotFound, models.NewJsonErrorMessageResponse("API endpoint not found"))
 			return
 		}
 		// Try to serve file from SPA directory

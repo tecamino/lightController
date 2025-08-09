@@ -27,8 +27,10 @@
         />
         <div class="q-py-md">
           <div class="q-gutter-sm">
-            <q-checkbox v-model="newScene.movingHead" label="Moving Head" />
+            <q-checkbox v-model="newScene.stageLights" label="Stage Lights" />
             <q-checkbox v-model="newScene.lightBar" label="Light Bar" />
+            <q-checkbox v-model="newScene.floodPanels" label="Flood Panels" />
+            <q-checkbox v-model="newScene.movingHead" label="Moving Head" />
           </div>
         </div>
       </q-card-section>
@@ -52,6 +54,7 @@
   >
     <q-btn
       rounded
+      no-caps
       color="primary"
       :class="['q-ma-md', 'text-bold', 'text-white']"
       @click="openDialog('add')"
@@ -102,6 +105,7 @@
     <div>No scenes available</div>
     <q-btn
       rounded
+      no-caps
       color="primary"
       :class="['q-ma-md', 'text-bold', 'text-white']"
       @click="openDialog('add')"
@@ -114,13 +118,13 @@
 import { onMounted, reactive, ref } from 'vue';
 import type { Scene } from 'src/models/Scene';
 import type { Set } from 'src/vueLib/models/Set';
-import axios from 'axios';
-import { api } from 'src/boot/axios';
+import { dbmApi } from 'src/boot/axios';
 import { useNotify } from 'src/vueLib/general/useNotify';
 import Dialog from 'src/components/dialog/OkDialog.vue';
 import { setValues } from 'src/vueLib/services/websocket';
 import DialogFrame from 'src/vueLib/dialog/DialogFrame.vue';
 import { catchError } from 'src/vueLib/models/error';
+import { appApi } from 'src/boot/axios';
 
 const { NotifyResponse, NotifyDialog } = useNotify();
 const sceneDialog = ref();
@@ -130,26 +134,17 @@ const editIndex = ref(-1);
 const dialogLabel = ref('');
 const newScene = reactive<Scene>({
   name: '',
-  movingHead: false,
+  stageLights: false,
   lightBar: false,
+  floodPanels: false,
+  movingHead: false,
 });
 
 const scenes = ref<Scene[]>([]);
-const host = window.location.hostname;
-const port = 9500;
-const baseURL = `http://${host}:${port}`;
-
-const quasarApi = axios.create({
-  baseURL: baseURL,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
 
 onMounted(() => {
-  quasarApi
-    .get('/api/loadScenes')
+  appApi
+    .get('/loadScenes')
     .then((resp) => {
       if (resp.data) {
         scenes.value = resp.data;
@@ -166,9 +161,8 @@ function removeScene(name: string) {
     .then((res) => {
       if (res) {
         scenes.value = scenes.value.filter((s) => s.name !== name);
-
-        quasarApi
-          .delete('/api/deleteScene', {
+        appApi
+          .delete('/deleteScene', {
             data: { name },
           })
           .then((res) => {
@@ -190,8 +184,11 @@ function openDialog(dialogType: string, scene?: Scene, index?: number) {
       dialog.value = 'add';
       dialogLabel.value = 'Add Scene';
       newScene.name = '';
-      newScene.movingHead = true;
+      newScene.stageLights = true;
       newScene.lightBar = true;
+      newScene.floodPanels = true;
+      newScene.movingHead = true;
+
       break;
     case 'edit':
       if (!scene) return;
@@ -205,8 +202,8 @@ function openDialog(dialogType: string, scene?: Scene, index?: number) {
       if (!scene) return;
       dialog.value = 'load';
       dialogLabel.value = 'Load Scene';
-      quasarApi
-        .post('/api/loadScene', scene)
+      appApi
+        .post('/loadScene', scene)
         .then((res) => {
           if (res.data) {
             Object.assign(newScene, JSON.parse(JSON.stringify(res.data)));
@@ -236,9 +233,9 @@ const saveScene = async () => {
         return;
       }
 
-      if (newScene.movingHead) {
+      if (newScene.stageLights) {
         sendValues.push({
-          path: 'MovingHead',
+          path: 'StageLights',
           query: { depth: 0 },
         });
       }
@@ -250,9 +247,23 @@ const saveScene = async () => {
         });
       }
 
+      if (newScene.floodPanels) {
+        sendValues.push({
+          path: 'FloodPanels',
+          query: { depth: 0 },
+        });
+      }
+
+      if (newScene.movingHead) {
+        sendValues.push({
+          path: 'MovingHead',
+          query: { depth: 0 },
+        });
+      }
+
       if (sendValues.length > 0) {
         try {
-          const res = await api.post('/json_data', { get: sendValues });
+          const res = await dbmApi.post('/json_data', { get: sendValues });
           newScene.values = res.data.get;
         } catch (err) {
           NotifyResponse(err as Error, 'error');
@@ -266,8 +277,8 @@ const saveScene = async () => {
       // Sort alphabetically by scene name
       scenes.value.sort((a, b) => a.name.localeCompare(b.name));
 
-      quasarApi
-        .post('/api/saveScene', JSON.stringify(newScene))
+      appApi
+        .post('/saveScene', JSON.stringify(newScene))
         .then((res) => {
           if (res.data) {
             NotifyResponse(res.data);
@@ -285,9 +296,9 @@ const saveScene = async () => {
         return;
       }
 
-      if (newScene.movingHead) {
+      if (newScene.stageLights) {
         sendValues.push({
-          path: 'MovingHead',
+          path: 'StageLights',
           query: { depth: 0 },
         });
       }
@@ -299,9 +310,23 @@ const saveScene = async () => {
         });
       }
 
+      if (newScene.floodPanels) {
+        sendValues.push({
+          path: 'FloodPanels',
+          query: { depth: 0 },
+        });
+      }
+
+      if (newScene.movingHead) {
+        sendValues.push({
+          path: 'MovingHead',
+          query: { depth: 0 },
+        });
+      }
+
       if (sendValues.length > 0) {
         try {
-          const res = await api.post('/json_data', { get: sendValues });
+          const res = await dbmApi.post('/json_data', { get: sendValues });
           newScene.values = res.data.get;
         } catch (err) {
           NotifyResponse(err as Error, 'error');
@@ -313,8 +338,8 @@ const saveScene = async () => {
       scenes.value.sort((a, b) => a.name.localeCompare(b.name));
       scenes.value = [...scenes.value];
 
-      quasarApi
-        .post('/api/saveScene', JSON.stringify(newScene))
+      appApi
+        .post('/saveScene', JSON.stringify(newScene))
         .then((res) => {
           if (res.data) {
             NotifyResponse(res.data);
@@ -333,10 +358,16 @@ const saveScene = async () => {
         newScene.values?.forEach((element) => {
           if (!element.path) return;
 
-          if (newScene.movingHead && element.path.includes('MovingHead'))
+          if (newScene.stageLights && element.path.includes('StageLights'))
             setPaths.push({ uuid: element.uuid, path: element.path, value: element.value });
 
           if (newScene.lightBar && element.path.includes('LightBar'))
+            setPaths.push({ uuid: element.uuid, path: element.path, value: element.value });
+
+          if (newScene.floodPanels && element.path.includes('FloodPanels'))
+            setPaths.push({ uuid: element.uuid, path: element.path, value: element.value });
+
+          if (newScene.movingHead && element.path.includes('MovingHead'))
             setPaths.push({ uuid: element.uuid, path: element.path, value: element.value });
         });
 

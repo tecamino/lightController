@@ -26,7 +26,7 @@ select
           :toggle-high-low="true"
           dbm-path="MovingHead:Brightness"
           dbm-path2="MovingHead:BrightnessFine"
-          dbm-path3="MovingHead:Strobe"
+          dbm-path3="MovingHead:Strobe'"
           :dbm-value3="255"
           :opacity="0.5"
           class="q-ma-md"
@@ -114,14 +114,13 @@ import { findSubscriptionByPath, removeAllSubscriptions } from 'src/vueLib/model
 import { catchError } from 'src/vueLib/models/error';
 
 const { NotifyResponse } = useNotify();
-const brightness = updateBrightnessValue('MovingHead:Brightness');
-const state = updateValue(NotifyResponse, 'MovingHead:State');
 const settings = ref<Settings>({
   show: false,
   reversePan: false,
   reverseTilt: false,
-  startAddress: 0,
 });
+const brightness = updateBrightnessValue('MovingHead:Brightness');
+const state = updateValue(NotifyResponse, 'MovingHead:State');
 
 onMounted(() => {
   settings.value.reversePan = LocalStorage.getItem('reversePan') ?? false;

@@ -2,7 +2,7 @@ import type { Driver } from './Drivers';
 import type { Gets } from './Get';
 import type { Sets } from './Set';
 import type { Subs } from './Subscribe';
-import { api } from 'src/boot/axios';
+import { dbmApi } from 'src/boot/axios';
 
 export type Request = {
   get?: Gets;
@@ -25,7 +25,7 @@ export async function getRequest(
     payload = { path: path, query: { depth: depth } };
   }
 
-  const resp = await api.post(query, {
+  const resp = await dbmApi.post(query, {
     get: [payload],
   });
 
@@ -37,7 +37,7 @@ export async function getRequest(
 }
 
 export async function getRequests(gets: Gets): Promise<Gets> {
-  const resp = await api.post(query, {
+  const resp = await dbmApi.post(query, {
     get: gets,
   });
 
@@ -49,7 +49,7 @@ export async function getRequests(gets: Gets): Promise<Gets> {
 }
 
 export async function rawSetsRequest(sets: Sets): Promise<Sets> {
-  const resp = await api.post(query, {
+  const resp = await dbmApi.post(query, {
     set: sets,
   });
 
@@ -79,7 +79,7 @@ export async function setRequest(
     rename: rename,
   };
 
-  const resp = await api.post(query, {
+  const resp = await dbmApi.post(query, {
     set: [payload],
   });
 
@@ -91,7 +91,7 @@ export async function setRequest(
 }
 
 export async function setsRequest(sets: Sets): Promise<Sets> {
-  const resp = await api.post(query, {
+  const resp = await dbmApi.post(query, {
     set: sets,
   });
 
@@ -114,7 +114,7 @@ export async function deleteRequest(
   } else if (path) {
     payload = { path: path, driver: driver };
   }
-  const resp = await api.delete('/json_data', {
+  const resp = await dbmApi.delete('/json_data', {
     data: {
       set: [payload],
     },
